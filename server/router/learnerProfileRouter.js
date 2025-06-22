@@ -175,12 +175,44 @@ router.get(
   "/learner/conversations/:learnerId",
   authMiddleware,
   async (req, res) => {
-    const learnerId = req.params["learnerId"];
-    const conversations = await conversation
-      .find({ learnerId: learnerId })
-      .populate("mentorId", "firstName lastName email")
-      .sort({ updatedAt: -1 });
-    res.status(200).json(conversations);
+    try {
+      const learnerId = req.params["learnerId"];
+      const conversations = await conversation
+        .find({ learnerId: learnerId })
+        .populate("mentorId", "firstName lastName email")
+        .sort({ updatedAt: -1 });
+
+      // Get mentor profiles to include profile pictures
+      const MentorProfile = require("../models/mentorProfile");
+      const mentorIds = conversations.map((conv) => conv.mentorId._id);
+      const mentorProfiles = await MentorProfile.find({
+        mentorId: { $in: mentorIds },
+      });
+
+      // Enhance conversations with profile pictures
+      const enhancedConversations = conversations.map((conv) => {
+        const mentorProfile = mentorProfiles.find(
+          (profile) =>
+            profile.mentorId.toString() === conv.mentorId._id.toString()
+        );
+
+        return {
+          ...conv.toObject(),
+          mentorId: {
+            ...conv.mentorId.toObject(),
+            profilePictureUrl: mentorProfile?.profilePictureUrl || null,
+          },
+        };
+      });
+
+      res.status(200).json(enhancedConversations);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      res.status(500).json({
+        error: "Failed to fetch conversations",
+        details: error.message,
+      });
+    }
   }
 );
 

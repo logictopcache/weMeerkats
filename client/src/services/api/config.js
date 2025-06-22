@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
   LEARNERS: `${API_BASE_URL}/learners`,
   MENTORS: `${API_BASE_URL}/mentors`,
   CONVERSATION: `${API_BASE_URL}/mentor/conversation`,
+  CONVERSATIONS: `${API_BASE_URL}/mentor/conversations`,
 
   // Progress Tracking Endpoints
   SKILL_CATEGORIES: `${API_BASE_URL}/api/skill-categories`,

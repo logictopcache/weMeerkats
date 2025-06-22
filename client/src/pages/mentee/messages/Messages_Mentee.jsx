@@ -8,7 +8,8 @@ import { fetchLearners } from "../../../services/api/mentorApi";
 import ProfileAvatar from "../../../components/ProfileAvatar";
 import { fetchMenteeConversations } from "../../../services/api/menteeApi";
 import MenteeHeader from "../../../components/mentee/home/Header";
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPicker from "emoji-picker-react";
+import { fetchUserProfile } from "../../../services/api/profileService";
 
 // const ProfilePlaceholder = () => (
 //   <svg className="w-8 h-8 text-gray-300 bg-gray-100 rounded-full" fill="currentColor" viewBox="0 0 24 24">
@@ -48,6 +49,7 @@ const Message_Mentor = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(true);
   const typingTimeout = useRef(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState(null);
 
   const location = useLocation();
   const selectedMentorId = location.state?.selectedMentorId;
@@ -56,6 +58,16 @@ const Message_Mentor = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {
+    // Fetch current user's profile
+    const fetchCurrentUserProfile = async () => {
+      try {
+        const profile = await fetchUserProfile(false); // false for mentee
+        setCurrentUserProfile(profile);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+    };
+
     const fetchInitialConversations = async () => {
       try {
         const userId = localStorage.getItem("userId");
@@ -65,7 +77,6 @@ const Message_Mentor = () => {
 
         const conversationsData = await fetchMenteeConversations(userId);
         console.log(conversationsData);
-        
 
         const formattedConversations = conversationsData.map((conv) => ({
           id: conv._id,
@@ -73,8 +84,8 @@ const Message_Mentor = () => {
             id: conv.mentorId._id,
             name: `${conv.mentorId.firstName} ${conv.mentorId.lastName}`,
             email: conv.mentorId.email,
-            image: conv.mentorId.image,
-            status: socket?.connected ? 'pending' : 'offline',
+            image: conv.mentorId.profilePictureUrl || null,
+            status: socket?.connected ? "pending" : "offline",
           },
           messages: conv.messages || [],
           lastMessage:
@@ -97,7 +108,10 @@ const Message_Mentor = () => {
           if (selectedConversation) {
             setSelectedChat(selectedConversation);
             setMessages(selectedConversation.messages);
-            socket?.emit("joinRoom", { roomId: conversationId, userName: selectedChat.user.name });
+            socket?.emit("joinRoom", {
+              roomId: conversationId,
+              userName: selectedChat.user.name,
+            });
           }
         }
       } catch (error) {
@@ -107,8 +121,9 @@ const Message_Mentor = () => {
       }
     };
 
+    fetchCurrentUserProfile();
     fetchInitialConversations();
-  }, [socket, conversationId,selectedChat?.user?.name]);
+  }, [socket, conversationId, selectedChat?.user?.name]);
 
   useEffect(() => {
     if (!socket) return;
@@ -164,7 +179,7 @@ const Message_Mentor = () => {
     socket.on("userJoined", ({ userName }) => {
       // Store the userName when user joins
       if (userName) {
-        localStorage.setItem('lastChatUserName', userName);
+        localStorage.setItem("lastChatUserName", userName);
       }
       const systemMessage = {
         id: Date.now(),
@@ -215,10 +230,19 @@ const Message_Mentor = () => {
         };
         setSelectedChat(newChat);
         setMessages(newChat.messages);
-        socket.emit("joinRoom", { roomId: conversationId, userName: selectedChat.user.name });
+        socket.emit("joinRoom", {
+          roomId: conversationId,
+          userName: selectedChat.user.name,
+        });
       }
     }
-  }, [selectedMentorId, conversationId, learners,socket,selectedChat?.user?.name]);
+  }, [
+    selectedMentorId,
+    conversationId,
+    learners,
+    socket,
+    selectedChat?.user?.name,
+  ]);
 
   // const handleCreateConversation = async (learnerId) => {
   //   try {
@@ -251,7 +275,7 @@ const Message_Mentor = () => {
       roomId: selectedChat.id,
       message: newMessage,
       authToken: localStorage.getItem("authToken"),
-      userName: localStorage.getItem('lastChatUserName')
+      userName: localStorage.getItem("lastChatUserName"),
     };
 
     if (!selectedChat.id) {
@@ -306,27 +330,29 @@ const Message_Mentor = () => {
   useEffect(() => {
     if (!socket || !connected) return;
 
-    const userId = localStorage.getItem('userId');
-    const userType = window.location.pathname.includes('mentor') ? 'mentor' : 'mentee';
+    const userId = localStorage.getItem("userId");
+    const userType = window.location.pathname.includes("mentor")
+      ? "mentor"
+      : "mentee";
 
     // Emit online status when connected
-    socket.emit('userOnline', { userId, userType });
+    socket.emit("userOnline", { userId, userType });
 
     // Listen for users' status changes
-    socket.on('userStatusUpdate', ({ userId, status }) => {
-      setConversations(prevConversations => 
-        prevConversations.map(conv => {
+    socket.on("userStatusUpdate", ({ userId, status }) => {
+      setConversations((prevConversations) =>
+        prevConversations.map((conv) => {
           if (conv.user.id === userId) {
             // Update both conversations list and selected chat if applicable
             if (selectedChat?.user.id === userId) {
-              setSelectedChat(prev => ({
+              setSelectedChat((prev) => ({
                 ...prev,
-                user: { ...prev.user, status }
+                user: { ...prev.user, status },
               }));
             }
             return {
               ...conv,
-              user: { ...conv.user, status }
+              user: { ...conv.user, status },
             };
           }
           return conv;
@@ -336,8 +362,8 @@ const Message_Mentor = () => {
 
     // Cleanup function
     return () => {
-      socket.emit('userOffline', { userId, userType });
-      socket.off('userStatusUpdate');
+      socket.emit("userOffline", { userId, userType });
+      socket.off("userStatusUpdate");
     };
   }, [socket, connected, selectedChat]);
 
@@ -358,7 +384,9 @@ const Message_Mentor = () => {
           <div className="w-1/3 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
             <div className="p-4 border-b border-white/10">
               <h2 className="text-xl font-semibold text-white">Messages</h2>
-              <p className="text-sm text-white/60">Your conversations with mentors</p>
+              <p className="text-sm text-white/60">
+                Your conversations with mentors
+              </p>
             </div>
             <div className="overflow-y-auto custom-scrollbar h-[calc(75vh-6rem)]">
               {conversations.map((chat) => (
@@ -367,7 +395,10 @@ const Message_Mentor = () => {
                   onClick={() => {
                     setSelectedChat(chat);
                     setMessages(chat.messages);
-                    socket?.emit("joinRoom", { roomId: chat.id, userName: chat.user.name });
+                    socket?.emit("joinRoom", {
+                      roomId: chat.id,
+                      userName: chat.user.name,
+                    });
                   }}
                   className={`flex items-center gap-3 p-4 hover:bg-white/5 cursor-pointer transition-all duration-200 ${
                     selectedChat?.id === chat.id
@@ -390,7 +421,9 @@ const Message_Mentor = () => {
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
-                      <h3 className="font-semibold text-white">{chat.user.name}</h3>
+                      <h3 className="font-semibold text-white">
+                        {chat.user.name}
+                      </h3>
                       <div className="flex flex-col items-end gap-1">
                         <span className="text-xs text-white/40">
                           {chat.time}
@@ -429,21 +462,27 @@ const Message_Mentor = () => {
                           size="lg"
                           style="character"
                         />
-                        <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0A1128] ${
-                          selectedChat.user.status === 'online' 
-                            ? 'bg-green-500' 
-                            : 'bg-gray-500'
-                        }`}></div>
+                        <div
+                          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0A1128] ${
+                            selectedChat.user.status === "online"
+                              ? "bg-green-500"
+                              : "bg-gray-500"
+                          }`}
+                        ></div>
                       </div>
                       <div>
                         <h3 className="font-semibold text-white flex items-center gap-2">
                           {selectedChat.user.name}
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            selectedChat.user.status === 'online'
-                              ? 'bg-green-500/20 text-green-500'
-                              : 'bg-gray-500/20 text-gray-400'
-                          }`}>
-                            {selectedChat.user.status === 'online' ? 'Online' : 'Offline'}
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              selectedChat.user.status === "online"
+                                ? "bg-green-500/20 text-green-500"
+                                : "bg-gray-500/20 text-gray-400"
+                            }`}
+                          >
+                            {selectedChat.user.status === "online"
+                              ? "Online"
+                              : "Offline"}
                           </span>
                         </h3>
                         <p className="text-sm text-white/60">
@@ -452,19 +491,27 @@ const Message_Mentor = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        connected 
-                          ? 'bg-green-500/20 text-green-500' 
-                          : 'bg-red-500/20 text-red-500'
-                      }`}>
-                        {connected ? 'Connected to chat' : 'Disconnected'}
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          connected
+                            ? "bg-green-500/20 text-green-500"
+                            : "bg-red-500/20 text-red-500"
+                        }`}
+                      >
+                        {connected ? "Connected to chat" : "Disconnected"}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Messages area */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4" style={{ backgroundImage: 'radial-gradient(circle at center, rgba(45, 144, 126, 0.05) 0%, transparent 70%)' }}>
+                <div
+                  className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4"
+                  style={{
+                    backgroundImage:
+                      "radial-gradient(circle at center, rgba(45, 144, 126, 0.05) 0%, transparent 70%)",
+                  }}
+                >
                   {messages.map((message, index) => {
                     if (message.type === "system") {
                       return (
@@ -483,17 +530,19 @@ const Message_Mentor = () => {
 
                     const userId = localStorage.getItem("userId");
                     const isMyMessage = message.userId === userId;
-                    
+
                     return (
                       <div
                         key={`message-${message.id || index}`}
-                        className={`flex items-end gap-2 ${isMyMessage ? "justify-end" : "justify-start"}`}
+                        className={`flex items-end gap-2 ${
+                          isMyMessage ? "justify-end" : "justify-start"
+                        }`}
                       >
                         {!isMyMessage && (
-                          <ProfileAvatar 
-                            name={selectedChat.user.name} 
+                          <ProfileAvatar
+                            name={selectedChat.user.name}
                             email={selectedChat.user.email}
-                            image={selectedChat.user.image} 
+                            image={selectedChat.user.image}
                             size="sm"
                             style="shape"
                           />
@@ -511,16 +560,26 @@ const Message_Mentor = () => {
                               isMyMessage ? "text-white/60" : "text-white/40"
                             }`}
                           >
-                            {new Date(message.timestamp).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {new Date(message.timestamp).toLocaleTimeString(
+                              [],
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
                           </div>
                         </div>
                         {isMyMessage && (
-                          <ProfileAvatar 
-                            name={localStorage.getItem('lastChatUserName')}
-                            email={localStorage.getItem('userEmail')}
+                          <ProfileAvatar
+                            name={
+                              currentUserProfile?.fullName ||
+                              localStorage.getItem("lastChatUserName")
+                            }
+                            email={
+                              currentUserProfile?.email ||
+                              localStorage.getItem("userEmail")
+                            }
+                            image={currentUserProfile?.profilePictureUrl}
                             size="sm"
                             style="character"
                           />
@@ -535,17 +594,22 @@ const Message_Mentor = () => {
                 <div className="p-4 border-t border-white/10 bg-white/5">
                   <div className="flex items-center gap-2">
                     <div className="relative">
-                      <button 
+                      <button
                         className="p-2 rounded-lg hover:bg-white/5 transition-colors text-white/60 hover:text-white"
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                         title="Add emoji"
                       >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round" 
-                            strokeWidth={2} 
-                            d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+                        <svg
+                          className="w-6 h-6"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                           />
                         </svg>
                       </button>
@@ -600,11 +664,21 @@ const Message_Mentor = () => {
               <div className="flex flex-col items-center justify-center h-full text-center p-8">
                 <div className="w-16 h-16 mb-4 text-white/20">
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">No Conversation Selected</h3>
-                <p className="text-white/60">Select a conversation from the list to start chatting with your mentor</p>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  No Conversation Selected
+                </h3>
+                <p className="text-white/60">
+                  Select a conversation from the list to start chatting with
+                  your mentor
+                </p>
               </div>
             )}
           </div>

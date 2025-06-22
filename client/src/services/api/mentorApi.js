@@ -186,7 +186,7 @@ export const fetchMentorProfile = async (mentorId) => {
 export const fetchMentorConversations = async (mentorId) => {
   const token = localStorage.getItem("authToken");
   try {
-    const response = await fetch(`${API_ENDPOINTS.CONVERSATION}s/${mentorId}`, {
+    const response = await fetch(`${API_ENDPOINTS.CONVERSATIONS}/${mentorId}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

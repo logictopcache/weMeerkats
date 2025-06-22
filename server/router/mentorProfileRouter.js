@@ -393,9 +393,36 @@ router.get(
         return res.status(404).json({ message: "No conversations found" });
       }
 
+      // Get learner profiles to include profile pictures
+      const LearnerProfile = require("../models/learnerProfile");
+      const learnerIds = conversations.map((conv) => conv.learnerId._id);
+
+      const learnerProfiles = await LearnerProfile.find({
+        learnerId: { $in: learnerIds },
+      });
+
+      // Enhance conversations with profile pictures
+      const enhancedConversations = conversations.map((conv) => {
+        const learnerProfile = learnerProfiles.find(
+          (profile) =>
+            profile.learnerId.toString() === conv.learnerId._id.toString()
+        );
+
+        // Use the profilePictureUrl from LearnerProfile if it exists, otherwise null
+        const profilePictureUrl = learnerProfile?.profilePictureUrl || null;
+
+        return {
+          ...conv.toObject(),
+          learnerId: {
+            ...conv.learnerId.toObject(),
+            profilePictureUrl: profilePictureUrl,
+          },
+        };
+      });
+
       res.status(200).json({
         message: "Conversations retrieved successfully",
-        conversations,
+        conversations: enhancedConversations,
       });
     } catch (error) {
       console.error("Error fetching conversations:", error);
