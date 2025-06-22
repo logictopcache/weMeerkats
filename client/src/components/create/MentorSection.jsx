@@ -20,6 +20,7 @@ const MentorSection = ({ title, subtitle }) => {
   const [skillsList, setSkillsList] = useState([]);
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [skillsError, setSkillsError] = useState(null);
+  const [profilePicture, setProfilePicture] = useState(null); // State for file
 
   const [errors, setErrors] = useState({});
 
@@ -79,8 +80,8 @@ const MentorSection = ({ title, subtitle }) => {
         setSkillsList(skills);
         setSkillsError(null);
       } catch (error) {
-        setSkillsError('Failed to load skills. Please try again later.');
-        console.error('Error loading skills:', error);
+        setSkillsError("Failed to load skills. Please try again later.");
+        console.error("Error loading skills:", error);
       } finally {
         setIsLoadingSkills(false);
       }
@@ -121,27 +122,39 @@ const MentorSection = ({ title, subtitle }) => {
     }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProfilePicture(file);
+      console.log("Selected file:", file.name); // Debug
+    } else {
+      setProfilePicture(null);
+    }
+  };
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-  
+
     const newErrors = {};
-  
+
     if (!formData.education?.[0]?.universityName) {
       newErrors.education = [{ universityName: "University name is required" }];
     }
-  
+
     if (!formData.education?.[0]?.degree) {
       newErrors.education = [
         { ...newErrors.education?.[0], degree: "Degree is required" },
       ];
     }
-  
+
     if (!formData.workExperiences?.[0]?.title) {
-      newErrors.workExperiences = [{ title: "Work experience title is required" }];
+      newErrors.workExperiences = [
+        { title: "Work experience title is required" },
+      ];
     }
-  
+
     setErrors(newErrors);
-  
+
     if (Object.keys(newErrors).length > 0) {
       const firstError = Object.values(newErrors)[0];
       if (typeof firstError === "string") {
@@ -152,22 +165,35 @@ const MentorSection = ({ title, subtitle }) => {
       }
       return;
     }
-  
+
     try {
       const submitData = new FormData();
-  
+
       // Append basic information
       submitData.append("phone", formData.phone || "");
       submitData.append("bio", formData.bio || "");
-  
+      if (profilePicture) {
+        submitData.append("image", profilePicture);
+        console.log("Profile picture appended:", profilePicture.name);
+      }
+
       // Append education and work experience as JSON strings
       submitData.append("education", JSON.stringify(formData.education || []));
-      submitData.append("workExperiences", JSON.stringify(formData.workExperiences || []));
+      submitData.append(
+        "workExperiences",
+        JSON.stringify(formData.workExperiences || [])
+      );
       submitData.append("skills", JSON.stringify(formData.skills || []));
       submitData.append("expertise", JSON.stringify(formData.expertise || []));
-      submitData.append("certification", JSON.stringify(formData.certification || []));
-      submitData.append("availability", JSON.stringify(formData.availability || {}));
-  
+      submitData.append(
+        "certification",
+        JSON.stringify(formData.certification || [])
+      );
+      submitData.append(
+        "availability",
+        JSON.stringify(formData.availability || {})
+      );
+
       await handleSubmit(submitData);
       toast.success("Profile created successfully!");
       navigate("/mentor/home");
@@ -264,21 +290,24 @@ const MentorSection = ({ title, subtitle }) => {
   );
 
   // Add debug logs
-  console.log('Search Term:', searchTerm);
-  console.log('Skills List:', skillsList);
-  console.log('Filtered Skills:', filteredSkills);
-  console.log('Loading:', isLoadingSkills);
-  console.log('Error:', skillsError);
+  console.log("Search Term:", searchTerm);
+  console.log("Skills List:", skillsList);
+  console.log("Filtered Skills:", filteredSkills);
+  console.log("Loading:", isLoadingSkills);
+  console.log("Error:", skillsError);
 
   const formSectionVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    visible: { opacity: 1, y: 0 },
   };
 
-  const sectionStyle = "bg-white/[0.02] backdrop-blur-sm rounded-xl p-6 border border-white/10";
-  const inputStyle = "w-full px-4 py-3 rounded-lg bg-white/[0.03] border border-white/10 focus:border-primary-color text-white placeholder-white/40 transition-colors";
+  const sectionStyle =
+    "bg-white/[0.02] backdrop-blur-sm rounded-xl p-6 border border-white/10";
+  const inputStyle =
+    "w-full px-4 py-3 rounded-lg bg-white/[0.03] border border-white/10 focus:border-primary-color text-white placeholder-white/40 transition-colors";
   const labelStyle = "text-white/90 block mb-2";
-  const selectStyle = "w-full px-4 py-3 rounded-lg bg-white/[0.03] border border-white/10 focus:border-primary-color text-white transition-colors";
+  const selectStyle =
+    "w-full px-4 py-3 rounded-lg bg-white/[0.03] border border-white/10 focus:border-primary-color text-white transition-colors";
   const optionStyle = "bg-[#0A1128]";
 
   const handleSlotClick = (day, time) => {
@@ -288,14 +317,14 @@ const MentorSection = ({ title, subtitle }) => {
   const handleSlotUpdate = (day, time, selectedSlotSkills, duration) => {
     setFormData((prev) => {
       const daySlots = prev.availability?.[day] || [];
-      const updatedSlots = daySlots.filter(slot => slot.startTime !== time);
-      
+      const updatedSlots = daySlots.filter((slot) => slot.startTime !== time);
+
       if (selectedSlotSkills.length > 0) {
         updatedSlots.push({
           startTime: time,
           isAvailable: true,
           skills: selectedSlotSkills,
-          duration: duration
+          duration: duration,
         });
       }
 
@@ -303,16 +332,20 @@ const MentorSection = ({ title, subtitle }) => {
         ...prev,
         availability: {
           ...prev.availability,
-          [day]: updatedSlots
-        }
+          [day]: updatedSlots,
+        },
       };
     });
     setEditingSlot(null);
   };
 
   const SlotEditModal = ({ day, time, onClose }) => {
-    const slot = formData.availability?.[day]?.find(s => s.startTime === time) || { skills: [], duration: 60 };
-    const [selectedSlotSkills, setSelectedSlotSkills] = useState(slot.skills || []);
+    const slot = formData.availability?.[day]?.find(
+      (s) => s.startTime === time
+    ) || { skills: [], duration: 60 };
+    const [selectedSlotSkills, setSelectedSlotSkills] = useState(
+      slot.skills || []
+    );
     const [duration, setDuration] = useState(slot.duration || 60);
 
     return (
@@ -354,7 +387,9 @@ const MentorSection = ({ title, subtitle }) => {
               )}
             </div>
             <div>
-              <label className="text-white/80 block mb-2">Duration (minutes)</label>
+              <label className="text-white/80 block mb-2">
+                Duration (minutes)
+              </label>
               <div className="grid grid-cols-3 gap-2">
                 {durations.map((d) => (
                   <button
@@ -382,7 +417,9 @@ const MentorSection = ({ title, subtitle }) => {
               </button>
               <button
                 type="button"
-                onClick={() => handleSlotUpdate(day, time, selectedSlotSkills, duration)}
+                onClick={() =>
+                  handleSlotUpdate(day, time, selectedSlotSkills, duration)
+                }
                 className="px-4 py-2 bg-primary-color text-white rounded-lg"
                 disabled={selectedSlotSkills.length === 0}
               >
@@ -406,37 +443,37 @@ const MentorSection = ({ title, subtitle }) => {
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
           {title && (
             <>
-              {title.split(' ').slice(0, -2).join(' ')}{' '}
+              {title.split(" ").slice(0, -2).join(" ")}{" "}
               <span className="text-primary-color">
-                {title.split(' ').slice(-2).join(' ')}
+                {title.split(" ").slice(-2).join(" ")}
               </span>
             </>
           )}
         </h1>
         {subtitle && (
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            {subtitle}
-          </p>
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">{subtitle}</p>
         )}
       </motion.div>
 
-      <motion.form 
-        onSubmit={handleFormSubmit} 
+      <motion.form
+        onSubmit={handleFormSubmit}
         className="space-y-8"
         initial="hidden"
         animate="visible"
         variants={{
           visible: {
             transition: {
-              staggerChildren: 0.2
-            }
-          }
+              staggerChildren: 0.2,
+            },
+          },
         }}
       >
         {/* Basic Information */}
         <motion.div variants={formSectionVariants} className={sectionStyle}>
           <h2 className="text-2xl font-semibold text-primary-color mb-6 flex items-center">
-            <span className="w-8 h-8 rounded-lg bg-primary-color/20 flex items-center justify-center mr-3 text-lg">1</span>
+            <span className="w-8 h-8 rounded-lg bg-primary-color/20 flex items-center justify-center mr-3 text-lg">
+              1
+            </span>
             Basic Information
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -451,6 +488,20 @@ const MentorSection = ({ title, subtitle }) => {
                   className={inputStyle}
                   placeholder="Enter your phone number"
                 />
+              </div>
+              <div>
+                <label className={labelStyle}>Profile Picture</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className={`${inputStyle} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-color file:text-white hover:file:bg-primary-color/80 file:cursor-pointer`}
+                />
+                {profilePicture && (
+                  <p className="text-sm text-primary-color mt-2">
+                    Selected: {profilePicture.name}
+                  </p>
+                )}
               </div>
             </div>
             <div className="space-y-4">
@@ -472,27 +523,54 @@ const MentorSection = ({ title, subtitle }) => {
         {/* Education */}
         <motion.div variants={formSectionVariants} className={sectionStyle}>
           <h2 className="text-2xl font-semibold text-primary-color mb-6 flex items-center">
-            <span className="w-8 h-8 rounded-lg bg-primary-color/20 flex items-center justify-center mr-3 text-lg">2</span>
+            <span className="w-8 h-8 rounded-lg bg-primary-color/20 flex items-center justify-center mr-3 text-lg">
+              2
+            </span>
             Education
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className={labelStyle}>Degree</label>
-              <input
-                type="text"
+              <select
                 value={formData.education[0].degree}
-                onChange={(e) => handleEducationChange("degree", e.target.value)}
-                className={`${inputStyle} ${errors.education?.[0]?.degree ? 'border-red-500' : ''}`}
-                placeholder="Enter your degree"
-              />
+                onChange={(e) =>
+                  handleEducationChange("degree", e.target.value)
+                }
+                className={`${selectStyle} ${
+                  errors.education?.[0]?.degree ? "border-red-500" : ""
+                }`}
+              >
+                <option value="" className={optionStyle}>
+                  Select Degree
+                </option>
+                <option value="Bachelors" className={optionStyle}>
+                  Bachelors
+                </option>
+                <option value="Masters" className={optionStyle}>
+                  Masters
+                </option>
+                <option value="PHD" className={optionStyle}>
+                  PHD
+                </option>
+                <option value="Diploma" className={optionStyle}>
+                  Diploma
+                </option>
+                <option value="Certificate" className={optionStyle}>
+                  Certificate
+                </option>
+              </select>
             </div>
             <div>
               <label className={labelStyle}>University Name</label>
               <input
                 type="text"
                 value={formData.education[0].universityName}
-                onChange={(e) => handleEducationChange("universityName", e.target.value)}
-                className={`${inputStyle} ${errors.education?.[0]?.universityName ? 'border-red-500' : ''}`}
+                onChange={(e) =>
+                  handleEducationChange("universityName", e.target.value)
+                }
+                className={`${inputStyle} ${
+                  errors.education?.[0]?.universityName ? "border-red-500" : ""
+                }`}
                 placeholder="Enter university name"
               />
             </div>
@@ -500,28 +578,46 @@ const MentorSection = ({ title, subtitle }) => {
               <label className={labelStyle}>Duration</label>
               <select
                 value={formData.education[0].duration}
-                onChange={(e) => handleEducationChange("duration", e.target.value)}
+                onChange={(e) =>
+                  handleEducationChange("duration", e.target.value)
+                }
                 className={selectStyle}
               >
-                <option value="" className={optionStyle}>Select Duration</option>
+                <option value="" className={optionStyle}>
+                  Select Duration
+                </option>
                 {Array.from({ length: 9 }, (_, i) => i + 2).map((years) => (
-                  <option key={years} value={`${years} years`} className={optionStyle}>
+                  <option
+                    key={years}
+                    value={`${years} years`}
+                    className={optionStyle}
+                  >
                     {years} years
                   </option>
                 ))}
-                <option value="10+ years" className={optionStyle}>10+ years</option>
+                <option value="10+ years" className={optionStyle}>
+                  10+ years
+                </option>
               </select>
             </div>
             <div>
               <label className={labelStyle}>Location</label>
               <select
                 value={formData.education[0].location}
-                onChange={(e) => handleEducationChange("location", e.target.value)}
+                onChange={(e) =>
+                  handleEducationChange("location", e.target.value)
+                }
                 className={selectStyle}
               >
-                <option value="" className={optionStyle}>Select Location</option>
+                <option value="" className={optionStyle}>
+                  Select Location
+                </option>
                 {locationsList.map((location) => (
-                  <option key={location} value={location} className={optionStyle}>
+                  <option
+                    key={location}
+                    value={location}
+                    className={optionStyle}
+                  >
                     {location}
                   </option>
                 ))}
@@ -531,7 +627,9 @@ const MentorSection = ({ title, subtitle }) => {
               <label className={labelStyle}>Description</label>
               <textarea
                 value={formData.education[0].description}
-                onChange={(e) => handleEducationChange("description", e.target.value)}
+                onChange={(e) =>
+                  handleEducationChange("description", e.target.value)
+                }
                 className={inputStyle}
                 rows={3}
                 placeholder="Describe your educational background..."
@@ -543,7 +641,9 @@ const MentorSection = ({ title, subtitle }) => {
         {/* Work Experience */}
         <motion.div variants={formSectionVariants} className={sectionStyle}>
           <h2 className="text-2xl font-semibold text-primary-color mb-6 flex items-center">
-            <span className="w-8 h-8 rounded-lg bg-primary-color/20 flex items-center justify-center mr-3 text-lg">3</span>
+            <span className="w-8 h-8 rounded-lg bg-primary-color/20 flex items-center justify-center mr-3 text-lg">
+              3
+            </span>
             Work Experience
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -552,8 +652,12 @@ const MentorSection = ({ title, subtitle }) => {
               <input
                 type="text"
                 value={formData.workExperiences[0].title}
-                onChange={(e) => handleWorkExperienceChange("title", e.target.value)}
-                className={`${inputStyle} ${errors.workExperiences?.[0]?.title ? 'border-red-500' : ''}`}
+                onChange={(e) =>
+                  handleWorkExperienceChange("title", e.target.value)
+                }
+                className={`${inputStyle} ${
+                  errors.workExperiences?.[0]?.title ? "border-red-500" : ""
+                }`}
                 placeholder="Enter your job title"
               />
             </div>
@@ -562,7 +666,9 @@ const MentorSection = ({ title, subtitle }) => {
               <input
                 type="text"
                 value={formData.workExperiences[0].companyName}
-                onChange={(e) => handleWorkExperienceChange("companyName", e.target.value)}
+                onChange={(e) =>
+                  handleWorkExperienceChange("companyName", e.target.value)
+                }
                 className={inputStyle}
                 placeholder="Enter company name"
               />
@@ -572,7 +678,9 @@ const MentorSection = ({ title, subtitle }) => {
               <input
                 type="text"
                 value={formData.workExperiences[0].location}
-                onChange={(e) => handleWorkExperienceChange("location", e.target.value)}
+                onChange={(e) =>
+                  handleWorkExperienceChange("location", e.target.value)
+                }
                 className={inputStyle}
                 placeholder="Enter work location"
               />
@@ -582,7 +690,9 @@ const MentorSection = ({ title, subtitle }) => {
               <input
                 type="text"
                 value={formData.workExperiences[0].duration}
-                onChange={(e) => handleWorkExperienceChange("duration", e.target.value)}
+                onChange={(e) =>
+                  handleWorkExperienceChange("duration", e.target.value)
+                }
                 className={inputStyle}
                 placeholder="e.g., 2 years"
               />
@@ -591,7 +701,9 @@ const MentorSection = ({ title, subtitle }) => {
               <label className={labelStyle}>Description</label>
               <textarea
                 value={formData.workExperiences[0].description}
-                onChange={(e) => handleWorkExperienceChange("description", e.target.value)}
+                onChange={(e) =>
+                  handleWorkExperienceChange("description", e.target.value)
+                }
                 className={inputStyle}
                 rows={3}
                 placeholder="Describe your work responsibilities and achievements..."
@@ -601,9 +713,14 @@ const MentorSection = ({ title, subtitle }) => {
         </motion.div>
 
         {/* Skills & Expertise */}
-        <motion.div variants={formSectionVariants} className={`${sectionStyle} relative z-50`}>
+        <motion.div
+          variants={formSectionVariants}
+          className={`${sectionStyle} relative z-50`}
+        >
           <h2 className="text-2xl font-semibold text-primary-color mb-6 flex items-center">
-            <span className="w-8 h-8 rounded-lg bg-primary-color/20 flex items-center justify-center mr-3 text-lg">4</span>
+            <span className="w-8 h-8 rounded-lg bg-primary-color/20 flex items-center justify-center mr-3 text-lg">
+              4
+            </span>
             Skills & Expertise
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -651,28 +768,31 @@ const MentorSection = ({ title, subtitle }) => {
                     <p className="text-red-500 text-sm mt-2">{skillsError}</p>
                   )}
                 </div>
-                {searchTerm && filteredSkills.length > 0 && !isLoadingSkills && !skillsError && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="absolute w-full mt-2 bg-[#0A1128] border border-white/10 rounded-lg shadow-xl max-h-60 overflow-y-auto"
-                    style={{ 
-                      top: '100%',
-                      left: 0,
-                      zIndex: 1000
-                    }}
-                  >
-                    {filteredSkills.map((skill) => (
-                      <div
-                        key={skill}
-                        onClick={() => handleSkillSelect(skill)}
-                        className="px-4 py-2 hover:bg-white/[0.03] cursor-pointer text-white/90 transition-colors first:rounded-t-lg last:rounded-b-lg"
-                      >
-                        {skill}
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
+                {searchTerm &&
+                  filteredSkills.length > 0 &&
+                  !isLoadingSkills &&
+                  !skillsError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute w-full mt-2 bg-[#0A1128] border border-white/10 rounded-lg shadow-xl max-h-60 overflow-y-auto"
+                      style={{
+                        top: "100%",
+                        left: 0,
+                        zIndex: 1000,
+                      }}
+                    >
+                      {filteredSkills.map((skill) => (
+                        <div
+                          key={skill}
+                          onClick={() => handleSkillSelect(skill)}
+                          className="px-4 py-2 hover:bg-white/[0.03] cursor-pointer text-white/90 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                        >
+                          {skill}
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
               </div>
             </div>
 
@@ -705,7 +825,11 @@ const MentorSection = ({ title, subtitle }) => {
                     value={expertiseSearchTerm}
                     onChange={(e) => setExpertiseSearchTerm(e.target.value)}
                     className="w-full bg-transparent outline-none text-white placeholder-white/40"
-                    placeholder={selectedExpertise.length === 0 ? "Type or select expertise..." : "Add more expertise..."}
+                    placeholder={
+                      selectedExpertise.length === 0
+                        ? "Type or select expertise..."
+                        : "Add more expertise..."
+                    }
                   />
                 </div>
                 {expertiseSearchTerm && filteredExpertise.length > 0 && (
@@ -757,7 +881,11 @@ const MentorSection = ({ title, subtitle }) => {
                     value={certSearchTerm}
                     onChange={(e) => setCertSearchTerm(e.target.value)}
                     className="w-full bg-transparent outline-none text-white placeholder-white/40"
-                    placeholder={selectedCertifications.length === 0 ? "Type or select certifications..." : "Add more certifications..."}
+                    placeholder={
+                      selectedCertifications.length === 0
+                        ? "Type or select certifications..."
+                        : "Add more certifications..."
+                    }
                   />
                 </div>
                 {certSearchTerm && filteredCertifications.length > 0 && (
@@ -783,9 +911,14 @@ const MentorSection = ({ title, subtitle }) => {
         </motion.div>
 
         {/* Availability Schedule */}
-        <motion.div variants={formSectionVariants} className={`${sectionStyle} relative z-40`}>
+        <motion.div
+          variants={formSectionVariants}
+          className={`${sectionStyle} relative z-40`}
+        >
           <h2 className="text-2xl font-semibold text-primary-color mb-6 flex items-center">
-            <span className="w-8 h-8 rounded-lg bg-primary-color/20 flex items-center justify-center mr-3 text-lg">5</span>
+            <span className="w-8 h-8 rounded-lg bg-primary-color/20 flex items-center justify-center mr-3 text-lg">
+              5
+            </span>
             Weekly Availability
           </h2>
           <div className="space-y-6">
@@ -821,7 +954,9 @@ const MentorSection = ({ title, subtitle }) => {
                     "19:00",
                     "20:00",
                   ].map((time) => {
-                    const slot = formData.availability?.[day]?.find(s => s.startTime === time);
+                    const slot = formData.availability?.[day]?.find(
+                      (s) => s.startTime === time
+                    );
                     return (
                       <button
                         key={`${day}-${time}`}
@@ -842,7 +977,9 @@ const MentorSection = ({ title, subtitle }) => {
                         </div>
                         {slot && (
                           <>
-                            <div className="text-xs opacity-80">{slot.duration}min</div>
+                            <div className="text-xs opacity-80">
+                              {slot.duration}min
+                            </div>
                             <div className="text-xs opacity-80 truncate max-w-full">
                               {slot.skills?.length} skills
                             </div>
@@ -882,7 +1019,7 @@ const MentorSection = ({ title, subtitle }) => {
                   Saving Profile...
                 </div>
               ) : (
-                'Save Profile'
+                "Save Profile"
               )}
             </span>
           </motion.button>

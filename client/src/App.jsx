@@ -31,6 +31,7 @@ import Privacy from "./pages/legal/Privacy";
 import Cookies from "./pages/legal/Cookies";
 import SkillDetails from "./pages/mentee/progress/SkillDetails";
 import MenteeProfilePage from "./pages/mentee/profile/MenteeProfile";
+import MentorProfilePage from "./pages/mentor/profile/MentorProfile";
 import { Toaster } from "react-hot-toast";
 
 function App() {
@@ -152,6 +153,14 @@ function App() {
       element: (
         <PrivateRoute>
           <MenteeProfilePage />
+        </PrivateRoute>
+      ),
+    },
+    {
+      path: "/mentor/profile",
+      element: (
+        <PrivateRoute>
+          <MentorProfilePage />
         </PrivateRoute>
       ),
     },

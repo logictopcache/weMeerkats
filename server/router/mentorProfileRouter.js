@@ -41,7 +41,7 @@ const upload = multer({ dest: "uploads/" });
 router.post(
   "/mentor-profile",
   authMiddleware,
-  upload.none(),
+  upload.single("image"),
   async (req, res) => {
     try {
       const parseField = (field) => {
@@ -72,7 +72,7 @@ router.post(
         email: req.mentor.email,
         phone,
         bio,
-        profilePictureUrl,
+        profilePictureUrl: req.file ? req.file.filename : profilePictureUrl,
         education: parseField(education) || [],
         designation,
         workExperiences: parseField(workExperiences) || [],
@@ -204,15 +204,25 @@ router.post("/mentor-availability/:id", async (req, res) => {
         }
 
         // Validate that all skills exist in mentor's profile
-        const invalidSkills = slot.skills.filter(skill => !mentorProfile.skills.includes(skill));
+        const invalidSkills = slot.skills.filter(
+          (skill) => !mentorProfile.skills.includes(skill)
+        );
         if (invalidSkills.length > 0) {
           return res.status(400).json({
-            error: `Invalid skills for time slot ${slot.startTime} on ${day}: ${invalidSkills.join(', ')}. Skills must be from your profile.`,
+            error: `Invalid skills for time slot ${
+              slot.startTime
+            } on ${day}: ${invalidSkills.join(
+              ", "
+            )}. Skills must be from your profile.`,
           });
         }
 
         // Ensure duration is set
-        if (!slot.duration || typeof slot.duration !== 'number' || slot.duration <= 0) {
+        if (
+          !slot.duration ||
+          typeof slot.duration !== "number" ||
+          slot.duration <= 0
+        ) {
           slot.duration = 60; // Set default duration if not provided or invalid
         }
       }
@@ -298,34 +308,39 @@ router.get("/mentor-profile/:id", async (req, res) => {
 router.get("/mentors", async (req, res) => {
   try {
     const mentorProfiles = await MentorProfile.find();
-    
+
     // Get all mentor IDs from profiles
-    const mentorIds = mentorProfiles.map(profile => profile.mentorId);
-    
+    const mentorIds = mentorProfiles.map((profile) => profile.mentorId);
+
     // Fetch all mentors' verification status
-    const mentors = await Mentor.find({ _id: { $in: mentorIds } }, { _id: 1, verified: 1 });
-    
+    const mentors = await Mentor.find(
+      { _id: { $in: mentorIds } },
+      { _id: 1, verified: 1 }
+    );
+
     // Create a map of mentor ID to verified status
     const verificationMap = {};
-    mentors.forEach(mentor => {
+    mentors.forEach((mentor) => {
       verificationMap[mentor._id.toString()] = mentor.verified;
     });
-    
+
     // Update verification status in profiles
-    const updatedProfiles = await Promise.all(mentorProfiles.map(async profile => {
-      const mentorId = profile.mentorId.toString();
-      const verified = verificationMap[mentorId];
-      
-      if (verified !== undefined && profile.isVerified !== verified) {
-        await MentorProfile.findOneAndUpdate(
-          { mentorId },
-          { isVerified: verified },
-          { new: true }
-        );
-        profile.isVerified = verified;
-      }
-      return profile;
-    }));
+    const updatedProfiles = await Promise.all(
+      mentorProfiles.map(async (profile) => {
+        const mentorId = profile.mentorId.toString();
+        const verified = verificationMap[mentorId];
+
+        if (verified !== undefined && profile.isVerified !== verified) {
+          await MentorProfile.findOneAndUpdate(
+            { mentorId },
+            { isVerified: verified },
+            { new: true }
+          );
+          profile.isVerified = verified;
+        }
+        return profile;
+      })
+    );
 
     res.status(200).json(updatedProfiles);
   } catch (error) {
@@ -493,7 +508,7 @@ router.patch(
           },
         },
         { new: true }
-      ).populate('learnerId');
+      ).populate("learnerId");
 
       if (!appointment) {
         return res
@@ -621,9 +636,9 @@ router.patch("/mentor-verify/:id", async (req, res) => {
     const { id } = req.params;
     const { isVerified } = req.body;
 
-    if (typeof isVerified !== 'boolean') {
+    if (typeof isVerified !== "boolean") {
       return res.status(400).json({
-        error: "isVerified must be a boolean value"
+        error: "isVerified must be a boolean value",
       });
     }
 
@@ -635,19 +650,19 @@ router.patch("/mentor-verify/:id", async (req, res) => {
 
     if (!profile) {
       return res.status(404).json({
-        error: "Mentor profile not found"
+        error: "Mentor profile not found",
       });
     }
 
     return res.status(200).json({
       message: "Verification status updated successfully",
-      profile
+      profile,
     });
   } catch (error) {
     console.error("Verification update error:", error);
     return res.status(500).json({
       error: "Error updating verification status",
-      details: error.message
+      details: error.message,
     });
   }
 });
@@ -666,32 +681,43 @@ router.get("/mentor/:mentorId/available-slots/:skill", async (req, res) => {
 
     // Verify mentor teaches this skill
     if (!mentorProfile.skills.includes(skill)) {
-      return res.status(400).json({ error: "Mentor does not teach this skill" });
+      return res
+        .status(400)
+        .json({ error: "Mentor does not teach this skill" });
     }
 
     // Get the day of week for the requested date
     const requestedDate = date ? new Date(date) : new Date();
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const days = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
     const dayOfWeek = days[requestedDate.getDay()];
 
-    console.log('Debug info:', {
+    console.log("Debug info:", {
       requestedDate,
       dayOfWeek,
       availableSlots: mentorProfile.availability[dayOfWeek],
-      requestedSkill: skill
+      requestedSkill: skill,
     });
 
     // Get all time slots for that day that are available and include the requested skill
-    const availableSlots = mentorProfile.availability[dayOfWeek]?.filter(slot => 
-      slot.isAvailable && slot.skills.includes(skill)
-    ) || [];
+    const availableSlots =
+      mentorProfile.availability[dayOfWeek]?.filter(
+        (slot) => slot.isAvailable && slot.skills.includes(skill)
+      ) || [];
 
-    console.log('Filtered slots:', availableSlots);
+    console.log("Filtered slots:", availableSlots);
 
     // Get existing appointments for the requested date
     const startOfDay = new Date(requestedDate);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(requestedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
@@ -699,84 +725,93 @@ router.get("/mentor/:mentorId/available-slots/:skill", async (req, res) => {
       mentorId,
       appointmentDateTime: {
         $gte: startOfDay,
-        $lte: endOfDay
+        $lte: endOfDay,
       },
-      status: { $nin: ["cancelled", "rejected"] }
+      status: { $nin: ["cancelled", "rejected"] },
     });
 
-    console.log('Existing appointments:', existingAppointments);
+    console.log("Existing appointments:", existingAppointments);
 
     // Filter out slots that already have appointments
-    const availableSlotsWithoutBookings = availableSlots.filter(slot => {
+    const availableSlotsWithoutBookings = availableSlots.filter((slot) => {
       const [hours, minutes] = slot.startTime.split(":").map(Number);
       const slotDate = new Date(requestedDate);
       slotDate.setHours(hours, minutes, 0, 0);
 
-      return !existingAppointments.some(appointment => {
+      return !existingAppointments.some((appointment) => {
         const appointmentTime = new Date(appointment.appointmentDateTime);
-        return appointmentTime.getHours() === hours && 
-               appointmentTime.getMinutes() === minutes;
+        return (
+          appointmentTime.getHours() === hours &&
+          appointmentTime.getMinutes() === minutes
+        );
       });
     });
 
     res.status(200).json({
       date: requestedDate,
       skill,
-      availableSlots: availableSlotsWithoutBookings.map(slot => ({
+      availableSlots: availableSlotsWithoutBookings.map((slot) => ({
         startTime: slot.startTime,
         duration: slot.duration,
-        skills: slot.skills
-      }))
+        skills: slot.skills,
+      })),
     });
   } catch (error) {
     console.error("Error fetching available slots:", error);
-    res.status(500).json({ error: "Failed to fetch available slots", details: error.message });
+    res.status(500).json({
+      error: "Failed to fetch available slots",
+      details: error.message,
+    });
   }
 });
 
 // Toggle availability for a specific time slot
-router.patch('/mentor/availability/toggle', authMiddleware, async (req, res) => {
-  try {
-    const { day, startTime, skill } = req.body;
-    const mentorId = req.mentor._id;
+router.patch(
+  "/mentor/availability/toggle",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { day, startTime, skill } = req.body;
+      const mentorId = req.mentor._id;
 
-    // Get mentor profile
-    const mentorProfile = await MentorProfile.findOne({ mentorId });
-    if (!mentorProfile) {
-      return res.status(404).json({ error: "Mentor profile not found" });
+      // Get mentor profile
+      const mentorProfile = await MentorProfile.findOne({ mentorId });
+      if (!mentorProfile) {
+        return res.status(404).json({ error: "Mentor profile not found" });
+      }
+
+      // Find the specific time slot
+      const dayAvailability = mentorProfile.availability[day.toLowerCase()];
+      if (!dayAvailability) {
+        return res.status(400).json({ error: "Invalid day specified" });
+      }
+
+      // Find the specific slot
+      const slotIndex = dayAvailability.findIndex(
+        (slot) => slot.startTime === startTime && slot.skills.includes(skill)
+      );
+
+      if (slotIndex === -1) {
+        return res.status(404).json({ error: "Time slot not found" });
+      }
+
+      // Toggle the availability
+      dayAvailability[slotIndex].isAvailable =
+        !dayAvailability[slotIndex].isAvailable;
+
+      // Save the updated profile
+      await mentorProfile.save();
+
+      res.status(200).json({
+        message: "Availability toggled successfully",
+        updatedSlot: dayAvailability[slotIndex],
+      });
+    } catch (error) {
+      console.error("Error toggling availability:", error);
+      res.status(500).json({ error: "Failed to toggle availability" });
     }
-
-    // Find the specific time slot
-    const dayAvailability = mentorProfile.availability[day.toLowerCase()];
-    if (!dayAvailability) {
-      return res.status(400).json({ error: "Invalid day specified" });
-    }
-
-    // Find the specific slot
-    const slotIndex = dayAvailability.findIndex(slot => 
-      slot.startTime === startTime && slot.skills.includes(skill)
-    );
-
-    if (slotIndex === -1) {
-      return res.status(404).json({ error: "Time slot not found" });
-    }
-
-    // Toggle the availability
-    dayAvailability[slotIndex].isAvailable = !dayAvailability[slotIndex].isAvailable;
-
-    // Save the updated profile
-    await mentorProfile.save();
-
-    res.status(200).json({
-      message: "Availability toggled successfully",
-      updatedSlot: dayAvailability[slotIndex]
-    });
-
-  } catch (error) {
-    console.error("Error toggling availability:", error);
-    res.status(500).json({ error: "Failed to toggle availability" });
   }
-});
+);
 
 // Add a new time slot
 router.post("/mentor-availability/:id/time-slot", async (req, res) => {
@@ -785,7 +820,15 @@ router.post("/mentor-availability/:id/time-slot", async (req, res) => {
     const { day, startTime, skills, duration = 60 } = req.body;
 
     // Validate day
-    const validDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+    const validDays = [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ];
     if (!validDays.includes(day)) {
       return res.status(400).json({
         error: `Invalid day: ${day}`,
@@ -794,8 +837,18 @@ router.post("/mentor-availability/:id/time-slot", async (req, res) => {
 
     // Validate time
     const validTimes = [
-      "09:00", "10:00", "11:00", "12:00", "13:00", "14:00",
-      "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
+      "09:00",
+      "10:00",
+      "11:00",
+      "12:00",
+      "13:00",
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00",
+      "18:00",
+      "19:00",
+      "20:00",
     ];
     if (!validTimes.includes(startTime)) {
       return res.status(400).json({
@@ -812,15 +865,23 @@ router.post("/mentor-availability/:id/time-slot", async (req, res) => {
     }
 
     // Validate skills
-    const invalidSkills = skills.filter(skill => !mentorProfile.skills.includes(skill));
+    const invalidSkills = skills.filter(
+      (skill) => !mentorProfile.skills.includes(skill)
+    );
     if (invalidSkills.length > 0) {
       return res.status(400).json({
-        error: `Invalid skills: ${invalidSkills.join(', ')}. Skills must be from your profile.`,
+        error: `Invalid skills: ${invalidSkills.join(
+          ", "
+        )}. Skills must be from your profile.`,
       });
     }
 
     // Check if time slot already exists
-    if (mentorProfile.availability[day]?.some(slot => slot.startTime === startTime)) {
+    if (
+      mentorProfile.availability[day]?.some(
+        (slot) => slot.startTime === startTime
+      )
+    ) {
       return res.status(400).json({
         error: `Time slot ${startTime} already exists for ${day}`,
       });
@@ -833,9 +894,9 @@ router.post("/mentor-availability/:id/time-slot", async (req, res) => {
           startTime,
           skills,
           duration,
-          isAvailable: true
-        }
-      }
+          isAvailable: true,
+        },
+      },
     };
 
     const updatedProfile = await MentorProfile.findOneAndUpdate(
@@ -846,76 +907,90 @@ router.post("/mentor-availability/:id/time-slot", async (req, res) => {
 
     return res.status(200).json({
       message: "Time slot added successfully",
-      timeSlot: updatedProfile.availability[day].find(slot => slot.startTime === startTime)
+      timeSlot: updatedProfile.availability[day].find(
+        (slot) => slot.startTime === startTime
+      ),
     });
   } catch (error) {
     console.error("Add time slot error:", error);
     return res.status(500).json({
       error: "Error adding time slot",
-      details: error.message
+      details: error.message,
     });
   }
 });
 
 // Mark appointment as completed
-router.patch("/mentor-requests/:appointmentId/complete", authMiddleware, async (req, res) => {
-  try {
-    const { feedback } = req.body;
+router.patch(
+  "/mentor-requests/:appointmentId/complete",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { feedback } = req.body;
 
-    const appointment = await Appointment.findOneAndUpdate(
-      {
-        _id: req.params.appointmentId,
-        mentorId: req.mentor._id,
-        status: "accepted",
-        appointmentDateTime: { $lt: new Date() } // Can only complete past appointments
-      },
-      {
-        $set: { 
-          status: "completed",
-          mentorFeedback: feedback 
+      const appointment = await Appointment.findOneAndUpdate(
+        {
+          _id: req.params.appointmentId,
+          mentorId: req.mentor._id,
+          status: "accepted",
+          appointmentDateTime: { $lt: new Date() }, // Can only complete past appointments
         },
-        $push: {
-          statusHistory: {
+        {
+          $set: {
             status: "completed",
-            updatedBy: req.mentor._id,
-            note: feedback || "Session completed by mentor"
-          }
-        }
-      },
-      { new: true }
-    ).populate('learnerId');
+            mentorFeedback: feedback,
+          },
+          $push: {
+            statusHistory: {
+              status: "completed",
+              updatedBy: req.mentor._id,
+              note: feedback || "Session completed by mentor",
+            },
+          },
+        },
+        { new: true }
+      ).populate("learnerId");
 
-    if (!appointment) {
-      return res.status(404).json({ 
-        error: "Appointment not found or cannot be marked as completed. Make sure the appointment is accepted and the session time has passed." 
+      if (!appointment) {
+        return res.status(404).json({
+          error:
+            "Appointment not found or cannot be marked as completed. Make sure the appointment is accepted and the session time has passed.",
+        });
+      }
+
+      // Format the date
+      const sessionDate = new Date(
+        appointment.appointmentDateTime
+      ).toLocaleDateString("en-US", {
+        month: "numeric",
+        day: "numeric",
+        year: "numeric",
       });
+
+      // Notify learner that session is marked as completed with proper skill name and formatted date
+      await NotificationService.createNotification(
+        appointment.learnerId._id,
+        `Your session for ${
+          appointment.skill || "the skill"
+        } on ${sessionDate} with ${req.mentor.firstName} ${
+          req.mentor.lastName
+        } has been marked as completed`,
+        "SESSION_COMPLETED",
+        "Learner"
+      );
+
+      res.status(200).json({
+        status: "success",
+        message: "Appointment marked as completed",
+        data: appointment,
+      });
+    } catch (error) {
+      console.error("Error completing appointment:", error);
+      res
+        .status(500)
+        .json({ error: "Failed to mark appointment as completed" });
     }
-
-    // Format the date
-    const sessionDate = new Date(appointment.appointmentDateTime).toLocaleDateString('en-US', {
-      month: 'numeric',
-      day: 'numeric',
-      year: 'numeric'
-    });
-
-    // Notify learner that session is marked as completed with proper skill name and formatted date
-    await NotificationService.createNotification(
-      appointment.learnerId._id,
-      `Your session for ${appointment.skill || 'the skill'} on ${sessionDate} with ${req.mentor.firstName} ${req.mentor.lastName} has been marked as completed`,
-      'SESSION_COMPLETED',
-      'Learner'
-    );
-
-    res.status(200).json({
-      status: "success",
-      message: "Appointment marked as completed",
-      data: appointment
-    });
-
-  } catch (error) {
-    console.error("Error completing appointment:", error);
-    res.status(500).json({ error: "Failed to mark appointment as completed" });
   }
-});
+);
 
 module.exports = router;

@@ -69,16 +69,34 @@ export const fetchUserProfile = async (isMentor = false) => {
     const data = await response.json();
 
     // The response is the profile object directly, not wrapped in data/success
-    return {
-      email: data.email || "",
-      fullName: data.fullName || "",
-      profilePictureUrl: data.profilePictureUrl || null,
-      bio: data.bio || "",
-      skills: data.skills || [],
-      education: data.education || [],
-      createdAt: data.createdAt || new Date(),
-      // Add other fields as needed
-    };
+    if (isMentor) {
+      return {
+        email: data.email || "",
+        fullName: data.fullName || "",
+        profilePictureUrl: data.profilePictureUrl || null,
+        bio: data.bio || "",
+        phone: data.phone || "",
+        skills: data.skills || [],
+        education: data.education || [],
+        workExperiences: data.workExperiences || [],
+        certification: data.certification || "",
+        expertise: data.expertise || "",
+        designation: data.designation || "",
+        availability: data.availability || {},
+        isVerified: data.isVerified || false,
+        createdAt: data.createdAt || new Date(),
+      };
+    } else {
+      return {
+        email: data.email || "",
+        fullName: data.fullName || "",
+        profilePictureUrl: data.profilePictureUrl || null,
+        bio: data.bio || "",
+        skills: data.skills || [],
+        education: data.education || [],
+        createdAt: data.createdAt || new Date(),
+      };
+    }
   } catch (error) {
     console.error("Error fetching profile:", error);
     throw error;
