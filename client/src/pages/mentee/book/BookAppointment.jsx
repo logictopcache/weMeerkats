@@ -4,10 +4,19 @@ import { motion } from "framer-motion";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "./Calendar.css";
-import { Calendar as CalendarIcon, Clock, CheckCircle2, AlertCircle, ChevronLeft, Loader2, Star } from 'lucide-react';
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  ChevronLeft,
+  Loader2,
+  Star,
+} from "lucide-react";
 import Navigation from "../../../components/mentee/home/Navigation";
 import MenteeHeader from "../../../components/mentee/home/Header";
-import { toast } from 'react-hot-toast';
+import { toast } from "react-hot-toast";
+import { API_ENDPOINTS } from "../../../services/api/config";
 
 const BookAppointment = () => {
   const [searchParams] = useSearchParams();
@@ -30,31 +39,48 @@ const BookAppointment = () => {
       }
 
       try {
-        const response = await fetch(`http://localhost:5274/mentor-availability/${mentorId}`);
-        const data = await response.json();
-        
-        if (data && data.length > 0) {
-          const mentorInfo = data[0];
-          console.log('Mentor Info:', {
-            skills: mentorInfo.skills,
-            availability: mentorInfo.availability
-          });
-          
+        // Fetch mentor profile data (same as profile page)
+        const profileResponse = await fetch(
+          `${API_ENDPOINTS.BASE_URL}/mentor-profile/${mentorId}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!profileResponse.ok) {
+          throw new Error("Failed to fetch mentor profile");
+        }
+
+        const profileData = await profileResponse.json();
+
+        // Fetch mentor availability data
+        const availabilityResponse = await fetch(
+          `http://localhost:5274/mentor-availability/${mentorId}`
+        );
+        const availabilityData = await availabilityResponse.json();
+
+        if (profileData) {
           setMentorData({
-            name: mentorInfo.fullName,
-            image: mentorInfo.image || "/media.png",
-            role: mentorInfo.expertise,
-            bio: mentorInfo.bio,
-            topSkills: mentorInfo.skills || [],
-            isVerified: mentorInfo.isVerified,
-            rating: 4.5,
-            availability: mentorInfo.availability
+            name:
+              profileData.fullName ||
+              `${profileData.firstName} ${profileData.lastName}`,
+            image: profileData.profilePictureUrl
+              ? `${API_ENDPOINTS.BASE_URL}/uploads/${profileData.profilePictureUrl}`
+              : "/media.png",
+            role: profileData.expertise || "Mentor",
+            bio: profileData.bio || "",
+            topSkills: profileData.skills || [],
+            isVerified: profileData.isVerified || false,
+            availability: availabilityData?.[0]?.availability || {},
           });
 
           // Set the first skill as default if available
-          if (mentorInfo.skills?.length > 0) {
-            console.log('Setting default skill:', mentorInfo.skills[0]);
-            setSelectedSkill(mentorInfo.skills[0]);
+          if (profileData.skills?.length > 0) {
+            console.log("Setting default skill:", profileData.skills[0]);
+            setSelectedSkill(profileData.skills[0]);
           }
         }
       } catch (error) {
@@ -80,15 +106,17 @@ const BookAppointment = () => {
 
     // Filter slots by selected skill AND availability
     const filteredSlots = daySlots
-      .filter(slot => slot.skills.includes(selectedSkill) && slot.isAvailable !== false) // Only show available slots
-      .map(slot => ({
+      .filter(
+        (slot) =>
+          slot.skills.includes(selectedSkill) && slot.isAvailable !== false
+      )
+      .map((slot) => ({
         startTime: slot.startTime,
         duration: slot.duration || 60,
-        skills: slot.skills
+        skills: slot.skills,
       }))
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-    console.log('Day:', dayName, 'Selected Skill:', selectedSkill, 'Available Slots:', filteredSlots);
     setAvailableSlots(filteredSlots);
   }, [date, selectedSkill, mentorData]);
 
@@ -133,13 +161,13 @@ const BookAppointment = () => {
           body: JSON.stringify({
             mentorId: mentorId,
             appointmentDateTime: appointmentDateTime.toISOString(),
-            skill: selectedSkill
+            skill: selectedSkill,
           }),
         }
       );
 
       const data = await response.json();
-      
+
       // Dismiss loading toast
       toast.dismiss(loadingToastId);
 
@@ -147,15 +175,24 @@ const BookAppointment = () => {
         // Handle specific error cases
         switch (response.status) {
           case 400:
-            throw new Error(data.error || "Invalid booking request. Please check your selections.");
+            throw new Error(
+              data.error ||
+                "Invalid booking request. Please check your selections."
+            );
           case 401:
             throw new Error("Your session has expired. Please sign in again.");
           case 409:
-            throw new Error("This time slot is no longer available. Please select another time.");
+            throw new Error(
+              "This time slot is no longer available. Please select another time."
+            );
           case 422:
-            throw new Error("The mentor is not available at this time. Please choose another slot.");
+            throw new Error(
+              "The mentor is not available at this time. Please choose another slot."
+            );
           case 429:
-            throw new Error("Too many booking attempts. Please wait a moment and try again.");
+            throw new Error(
+              "Too many booking attempts. Please wait a moment and try again."
+            );
           default:
             throw new Error(data.error || "Failed to book appointment");
         }
@@ -178,11 +215,10 @@ const BookAppointment = () => {
       setTimeout(() => {
         navigate("/mentee/home");
       }, 2000);
-
     } catch (error) {
       console.error("Booking error:", error);
       toast.error(error.message || "Failed to book appointment", {
-        duration: 4000
+        duration: 4000,
       });
     } finally {
       setIsBooking(false);
@@ -217,7 +253,7 @@ const BookAppointment = () => {
     <div className="min-h-screen bg-[#0A1128]">
       <MenteeHeader />
       <Navigation />
-      
+
       <div className="max-w-[1200px] mx-auto px-4 py-12">
         {/* Back Button */}
         <motion.button
@@ -230,7 +266,7 @@ const BookAppointment = () => {
         </motion.button>
 
         {/* Mentor Info Card */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="relative bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden mb-8 p-6"
@@ -238,11 +274,11 @@ const BookAppointment = () => {
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex items-start gap-6">
               <div className="relative">
-            <img
+                <img
                   src={mentorData.image || "/media.png"}
-              alt={mentorData.name}
+                  alt={mentorData.name}
                   className="w-20 h-20 rounded-full object-cover border-2 border-white/10"
-            />
+                />
                 {mentorData.isVerified ? (
                   <div className="absolute -bottom-1 -right-1 bg-primary-color rounded-full p-1 border-2 border-[#0A1128]">
                     <CheckCircle2 className="w-4 h-4 text-white" />
@@ -252,7 +288,7 @@ const BookAppointment = () => {
                     <AlertCircle className="w-4 h-4 text-black" />
                   </div>
                 )}
-          </div>
+              </div>
 
               <div>
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -263,21 +299,24 @@ const BookAppointment = () => {
                     </span>
                   )}
                 </h2>
-                <p className="text-primary-color font-medium">{mentorData.role}</p>
+                <p className="text-primary-color font-medium">
+                  {mentorData.role}
+                </p>
                 <div className="flex items-center gap-4 mt-2">
-                  <div className="flex items-center gap-1 text-white/60">
-                    <Star className="w-4 h-4 text-yellow-500" />
-                    <span>{mentorData.rating}/5.0</span>
-                  </div>
                   {mentorData.topSkills?.length > 0 && (
                     <div className="flex items-center gap-2">
                       <span className="w-1 h-1 rounded-full bg-white/20"></span>
                       <div className="flex gap-2">
-                        {mentorData.topSkills.slice(0, 3).map((skill, index) => (
-                          <span key={index} className="text-xs px-2 py-1 bg-white/5 rounded-full text-white/60">
-                            {skill}
-                    </span>
-                  ))}
+                        {mentorData.topSkills
+                          .slice(0, 3)
+                          .map((skill, index) => (
+                            <span
+                              key={index}
+                              className="text-xs px-2 py-1 bg-white/5 rounded-full text-white/60"
+                            >
+                              {skill}
+                            </span>
+                          ))}
                         {mentorData.topSkills.length > 3 && (
                           <span className="text-xs px-2 py-1 bg-white/5 rounded-full text-white/60">
                             +{mentorData.topSkills.length - 3}
@@ -288,21 +327,23 @@ const BookAppointment = () => {
                   )}
                 </div>
               </div>
-              </div>
+            </div>
 
             <div className="md:ml-auto flex items-center">
               <div className="text-sm text-white/60">
                 <p className="mb-1">About to book a session with</p>
                 <p className="font-medium text-white">{mentorData.name}</p>
+              </div>
             </div>
           </div>
-        </div>
 
           {mentorData.bio && (
             <div className="mt-4 pt-4 border-t border-white/10">
-              <p className="text-white/60 text-sm leading-relaxed">{mentorData.bio}</p>
-          </div>
-        )}
+              <p className="text-white/60 text-sm leading-relaxed">
+                {mentorData.bio}
+              </p>
+            </div>
+          )}
         </motion.div>
 
         {/* Booking Section */}
@@ -312,26 +353,31 @@ const BookAppointment = () => {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-1 md:grid-cols-2 gap-8"
         >
-            {/* Calendar Section */}
+          {/* Calendar Section */}
           <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
             <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
               <CalendarIcon className="w-5 h-5 text-primary-color" />
               Select Date
             </h3>
-                <Calendar
-                  onChange={handleDateChange}
-                  value={date}
+
+            <Calendar
+              onChange={handleDateChange}
+              value={date}
               className="custom-calendar !bg-transparent !border-white/10 !text-white"
-                  minDate={new Date()}
-                  view="month"
-                  next2Label={null}
-                  prev2Label={null}
-                />
-              </div>
+              minDate={new Date()}
+              view="month"
+              next2Label={null}
+              prev2Label={null}
+              showWeekNumbers={false}
+              locale="en-US"
+            />
+          </div>
 
           {/* Skills and Time Slots Section */}
           <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-            <h3 className="text-xl font-semibold text-white mb-6">Select Skill</h3>
+            <h3 className="text-xl font-semibold text-white mb-6">
+              Select Skill
+            </h3>
             <div className="grid grid-cols-2 gap-3 mb-6">
               {mentorData?.topSkills?.map((skill) => (
                 <motion.button
@@ -356,9 +402,9 @@ const BookAppointment = () => {
             {/* Time Slots Section */}
             <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary-color" />
-                  Available Time Slots
+              Available Time Slots
             </h3>
-            
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {availableSlots.length > 0 ? (
                 availableSlots.map((slot, index) => (
@@ -367,22 +413,27 @@ const BookAppointment = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={`p-3 rounded-xl text-sm transition-all duration-200 ${
-                            selectedTime === slot.startTime
+                      selectedTime === slot.startTime
                         ? "bg-primary-color text-white"
                         : "bg-white/5 text-white/80 hover:bg-white/10 border border-white/10"
-                          }`}
-                          onClick={() => setSelectedTime(slot.startTime)}
-                        >
+                    }`}
+                    onClick={() => setSelectedTime(slot.startTime)}
+                  >
                     <div>{slot.startTime}</div>
-                    <div className="text-xs text-white/60">{slot.duration} min</div>
+                    <div className="text-xs text-white/60">
+                      {slot.duration} min
+                    </div>
                   </motion.button>
-                      ))
-                  ) : (
-                <p className="col-span-full text-center text-white/40 py-8">
-                      No available slots for this day
-                    </p>
-                  )}
-          </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center text-white/40 py-8">
+                  <p>No available slots for this day</p>
+                  <p className="text-xs mt-2">
+                    Try selecting a different date or skill
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Booking Button */}
             <motion.button
@@ -417,12 +468,17 @@ const BookAppointment = () => {
 
 // Helper function to get day name
 const getDayName = (date) => {
-  console.log('Getting day name for:', date);
-  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const dayIndex = date.getDay();
-  const dayName = days[dayIndex];
-  console.log('Calculated day name:', dayName);
-  return dayName;
+  const days = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  return days[dayIndex];
 };
 
 export default BookAppointment;

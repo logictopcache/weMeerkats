@@ -54,7 +54,6 @@ const MentorProfile = () => {
         }
 
         const data = await response.json();
-        console.log("Full mentor profile data:", data);
 
         if (data) {
           setMentorData({
