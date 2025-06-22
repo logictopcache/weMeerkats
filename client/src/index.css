@@ -1,0 +1,294 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: "Poppins", serif;
+  }
+  input,
+  select {
+    @apply outline-none w-full bg-transparent;
+  }
+  input[type="checkbox"] {
+    @apply checked:accent-[#23a6f0] accent-white;
+  }
+  .btn-primary {
+    @apply text-white text-lg px-9 py-[6px] rounded-3xl hover:bg-primary-color ease-in-out duration-200 transition bg-[#59BBA9];
+  }
+  .btn-account {
+    @apply text-white text-lg px-6 py-[6px] rounded-3xl hover:bg-primary-color ease-in-out duration-200 transition bg-green-text;
+  }
+  .btn-secondary {
+    @apply text-lg rounded-3xl px-9 py-[6px] font-normal  ease-in-out duration-200 transition bg-transparent border-white text-white border-2;
+  }
+}
+
+@layer components {
+  .home-bg {
+    width: 100vw;
+    min-height: 100vh;
+    position: relative;
+  }
+}
+
+.react-calendar {
+  width: 100%;
+  border: none;
+  font-family: inherit;
+}
+
+.react-calendar__tile--active {
+  background: #2d907e !important;
+  color: white;
+}
+
+.react-calendar__tile--now {
+  background: #e6f4f1;
+}
+
+.react-calendar__tile:enabled:hover,
+.react-calendar__tile:enabled:focus {
+  background-color: #e6f4f1;
+}
+
+.react-calendar__tile--active:enabled:hover,
+.react-calendar__tile--active:enabled:focus {
+  background: #2d907e !important;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.shake-animation {
+  animation: shake 0.5s ease-in-out;
+}
+
+.toast-error {
+  background: linear-gradient(45deg, #ff6b6b, #ff8787) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.2) !important;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+.shake-animation {
+  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+input:invalid {
+  animation: shake 0.3s;
+}
+
+@keyframes shake {
+  25% {
+    transform: translateX(4px);
+  }
+  50% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+/* Quiz app */
+
+.quizAppWrapper {
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+}
+
+.title {
+  color: #020617;
+  text-align: center;
+  font-weight: 700;
+  font-size: clamp(1rem, 4vw, 2rem);
+}
+
+.categories {
+  margin-left: 1.3rem;
+  margin-top: 0.5rem;
+  color: #020617;
+  font-size: clamp(1rem, 5vw, 1.5rem);
+}
+
+.searchWraper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.search-box {
+  width: fit-content;
+  height: fit-content;
+  position: relative;
+  margin-right: 1.3rem;
+}
+.input-search {
+  height: 50px;
+  width: 50px;
+  border-style: none;
+  padding: 10px;
+  font-size: 18px;
+  letter-spacing: 2px;
+  outline: none;
+  border-radius: 25px;
+  transition: all 0.5s ease-in-out;
+  background-color: #020617;
+  padding-right: 40px;
+  color: #f8fafc;
+}
+.input-search::placeholder {
+  color: #f8fafc;
+  font-size: 18px;
+  letter-spacing: 1px;
+  font-weight: 400;
+}
+.btn-search {
+  width: 50px;
+  height: 50px;
+  border-style: none;
+  font-size: 20px;
+  font-weight: bold;
+  outline: none;
+  cursor: pointer;
+  border-radius: 50%;
+  position: absolute;
+  right: 0px;
+  color: #f8fafc;
+  background-color: transparent;
+  pointer-events: painted;
+  @apply flex items-center justify-center;
+}
+.btn-search:focus ~ .input-search {
+  width: 300px;
+  border-radius: 0px;
+  background-color: transparent;
+  border-bottom: 1px solid #020617;
+  transition: all 500ms cubic-bezier(0, 0.11, 0.35, 2);
+}
+.input-search:focus {
+  width: 300px;
+  border-radius: 0px;
+  background-color: transparent;
+  border-bottom: 1px solid #020617;
+  transition: all 500ms cubic-bezier(0, 0.11, 0.35, 2);
+}
+
+.quizCategories {
+  margin-top: 2rem;
+  place-items: center;
+  height: auto;
+  overflow-y: auto;
+  @apply mb-8;
+}
+
+figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  overflow: hidden;
+  cursor: pointer;
+  height: auto;
+  width: 100%;
+  @apply md:w-[16rem];
+}
+
+figure img {
+  transition: transform 0.4s ease-in-out;
+  height: 10rem;
+  object-fit: cover;
+  @apply md:w-[16rem] w-full;
+  border-radius: inherit;
+}
+
+figure:hover img {
+  transform: scale(1.1);
+}
+
+figure figcaption {
+  margin-top: 1rem;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.notFound {
+  @apply w-full text-center flex justify-center items-center flex-col;
+}
+
+.quizDailog {
+  @apply h-full w-full left-0 top-0 bg-white fixed;
+}
+
+.quizDailog header {
+  @apply py-4 shadow-md flex justify-between items-center px-5 flex-wrap;
+}
+
+.quizDailog header h5 {
+  @apply text-[1.5rem] tracking-wider font-semibold text-[#119d84];
+}
+
+.quizDailog footer {
+  @apply flex justify-between items-end h-[5rem] border-t w-full px-4;
+}
+
+.quizDailog footer .left {
+  @apply text-[#119d84];
+}
+
+.quizDailog footer .left span {
+  @apply font-bold text-[#119d84];
+}
+
+.quizDailog main {
+  @apply px-6;
+}
+.quizDailog main h1 {
+  @apply text-[1rem] md:text-[1.5rem] mt-3 text-[#119d84];
+}
+
+.optionsBox {
+  @apply h-full w-full mt-4;
+}
+
+.optionsBox .option {
+  @apply w-full bg-[#9a75c3]/30 border-[#119d84] border-2 cursor-pointer flex items-center mb-4 rounded-md py-2.5 px-4 text-[1.2rem];
+}
+
+.correct {
+  @apply !bg-emerald-400/50 !border-emerald-600;
+}
+
+.wrong {
+  @apply !bg-red-400/50 !border-red-600;
+}
+
+.result {
+  @apply fixed h-full w-full top-0 left-0 bg-white justify-center items-center flex-col text-[1.5rem] font-semibold text-[#9a75c3];
+}
