@@ -284,8 +284,14 @@ router.get("/mentor-profile/:id", async (req, res) => {
       return res.status(404).send({ message: "Profile not found" });
     }
 
-    // Get the mentor's verified status
-    const mentor = await Mentor.findById(id);
+    // Get the mentor's basic info and verified status
+    const mentor = await Mentor.findById(id, {
+      firstName: 1,
+      lastName: 1,
+      email: 1,
+      verified: 1,
+    });
+
     if (mentor) {
       // Update the profile's verification status if it doesn't match
       if (profile.isVerified !== mentor.verified) {
@@ -298,38 +304,54 @@ router.get("/mentor-profile/:id", async (req, res) => {
       profile.isVerified = mentor.verified;
     }
 
-    res.status(200).json(profile);
+    // Combine profile data with mentor basic info
+    const combinedData = {
+      ...profile.toObject(),
+      firstName: mentor?.firstName,
+      lastName: mentor?.lastName,
+      email: mentor?.email || profile.email,
+      verified: mentor?.verified,
+    };
+
+    res.status(200).json(combinedData);
   } catch (error) {
     console.error("Fetching error:", error);
     res.status(500).send({ error: error.message });
   }
 });
 
-router.get("/mentors", async (req, res) => {
+router.get("/mentor-profiles", async (req, res) => {
   try {
     const mentorProfiles = await MentorProfile.find();
 
     // Get all mentor IDs from profiles
     const mentorIds = mentorProfiles.map((profile) => profile.mentorId);
 
-    // Fetch all mentors' verification status
+    // Fetch all mentors' basic info and verification status
     const mentors = await Mentor.find(
       { _id: { $in: mentorIds } },
-      { _id: 1, verified: 1 }
+      { _id: 1, firstName: 1, lastName: 1, email: 1, verified: 1 }
     );
 
-    // Create a map of mentor ID to verified status
-    const verificationMap = {};
+    // Create a map of mentor ID to mentor data
+    const mentorMap = {};
     mentors.forEach((mentor) => {
-      verificationMap[mentor._id.toString()] = mentor.verified;
+      mentorMap[mentor._id.toString()] = {
+        firstName: mentor.firstName,
+        lastName: mentor.lastName,
+        email: mentor.email,
+        verified: mentor.verified,
+      };
     });
 
-    // Update verification status in profiles
-    const updatedProfiles = await Promise.all(
+    // Combine mentor profiles with mentor basic data
+    const combinedMentorData = await Promise.all(
       mentorProfiles.map(async (profile) => {
         const mentorId = profile.mentorId.toString();
-        const verified = verificationMap[mentorId];
+        const mentorBasicData = mentorMap[mentorId];
+        const verified = mentorBasicData?.verified;
 
+        // Update verification status in profile if needed
         if (verified !== undefined && profile.isVerified !== verified) {
           await MentorProfile.findOneAndUpdate(
             { mentorId },
@@ -338,11 +360,19 @@ router.get("/mentors", async (req, res) => {
           );
           profile.isVerified = verified;
         }
-        return profile;
+
+        // Return combined data
+        return {
+          ...profile.toObject(),
+          firstName: mentorBasicData?.firstName,
+          lastName: mentorBasicData?.lastName,
+          email: mentorBasicData?.email || profile.email,
+          verified: verified,
+        };
       })
     );
 
-    res.status(200).json(updatedProfiles);
+    res.status(200).json(combinedMentorData);
   } catch (error) {
     console.error("Error fetching mentors:", error);
     res.status(500).json({ error: "Internal server error" });
