@@ -1,42 +1,54 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import MentorHeader from "../../../components/mentor/home/Header";
 import Navigation from "../../../components/mentor/home/Navigation";
-import CreateAssignmentModal from '../../../components/mentor/progress/CreateAssignmentModal';
+import CreateAssignmentModal from "../../../components/mentor/progress/CreateAssignmentModal";
 import { motion } from "framer-motion";
-import { FiBook, FiCheckCircle, FiClock, FiPlus, FiUser, FiCalendar, FiChevronDown, FiChevronUp } from "react-icons/fi";
-import { fetchMenteesProgress, fetchCreatedAssignments } from '../../../services/api/mentorProgressApi';
-import { fetchMentorProfile } from '../../../services/api/mentorApi';
+import {
+  FiBook,
+  FiCheckCircle,
+  FiClock,
+  FiPlus,
+  FiUser,
+  FiCalendar,
+  FiChevronDown,
+  FiChevronUp,
+} from "react-icons/fi";
+import {
+  fetchMenteesProgress,
+  fetchCreatedAssignments,
+} from "../../../services/api/mentorProgressApi";
+import { fetchMentorProfile } from "../../../services/api/mentorApi";
 
 const ProgressTrack = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSkill, setSelectedSkill] = useState('');
+  const [selectedSkill, setSelectedSkill] = useState("");
   const [selectedMentee, setSelectedMentee] = useState(null);
   const [menteesProgress, setMenteesProgress] = useState([]);
   const [createdAssignments, setCreatedAssignments] = useState([]);
   const [expandedSkills, setExpandedSkills] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [mentorSkills, setMentorSkills] = useState([]);
 
   const loadData = async () => {
     try {
-      const mentorId = localStorage.getItem('userId');
+      const mentorId = localStorage.getItem("userId");
       const [progressData, assignmentsData, mentorData] = await Promise.all([
         fetchMenteesProgress(),
         fetchCreatedAssignments(),
-        fetchMentorProfile(mentorId)
+        fetchMentorProfile(mentorId),
       ]);
 
       if (!progressData.menteeProgress) {
-        throw new Error('No progress data available');
+        throw new Error("No progress data available");
       }
 
       setMenteesProgress(progressData.menteeProgress);
       setCreatedAssignments(assignmentsData);
       setMentorSkills(mentorData.topSkills || []);
     } catch (err) {
-      setError(err.message || 'Failed to load data. Please try again later.');
-      console.error('Error loading data:', err);
+      setError(err.message || "Failed to load data. Please try again later.");
+      console.error("Error loading data:", err);
     } finally {
       setIsLoading(false);
     }
@@ -58,15 +70,15 @@ const ProgressTrack = () => {
 
   const handleModalClose = () => {
     setIsModalOpen(false);
-    setSelectedSkill('');
+    setSelectedSkill("");
     setSelectedMentee(null);
     handleAssignmentCreated();
   };
 
   const toggleSkillExpansion = (skillName) => {
-    setExpandedSkills(prev => ({
+    setExpandedSkills((prev) => ({
       ...prev,
-      [skillName]: !prev[skillName]
+      [skillName]: !prev[skillName],
     }));
   };
 
@@ -80,7 +92,7 @@ const ProgressTrack = () => {
   }, {});
 
   // Sort assignments by creation date (newest first)
-  Object.values(assignmentsBySkill).forEach(assignments => {
+  Object.values(assignmentsBySkill).forEach((assignments) => {
     assignments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   });
 
@@ -89,17 +101,19 @@ const ProgressTrack = () => {
     const skillProgressMap = {};
     Object.entries(assignmentsBySkill).forEach(([skillName, assignments]) => {
       const totalAssignments = assignments.length;
-      const completedAssignments = assignments.reduce((sum, assignment) => 
-        sum + (assignment.isCompleted ? 1 : 0), 0
+      const completedAssignments = assignments.reduce(
+        (sum, assignment) => sum + (assignment.isCompleted ? 1 : 0),
+        0
       );
-      const totalCompletions = assignments.reduce((sum, assignment) => 
-        sum + (assignment.totalCompletions || 0), 0
+      const totalCompletions = assignments.reduce(
+        (sum, assignment) => sum + (assignment.totalCompletions || 0),
+        0
       );
-      
+
       // Safely collect all mentees who completed assignments
       const completedByMentees = assignments.reduce((mentees, assignment) => {
         if (assignment.completedBy && Array.isArray(assignment.completedBy)) {
-          assignment.completedBy.forEach(student => {
+          assignment.completedBy.forEach((student) => {
             if (student && student.id) {
               mentees.add(JSON.stringify(student));
             }
@@ -111,25 +125,29 @@ const ProgressTrack = () => {
       skillProgressMap[skillName] = {
         totalAssignments,
         completedAssignments,
-        mentees: Array.from(completedByMentees).map(menteeStr => JSON.parse(menteeStr))
+        mentees: Array.from(completedByMentees).map((menteeStr) =>
+          JSON.parse(menteeStr)
+        ),
       };
     });
 
     // Combine mentor skills with progress data
-    const allSkills = mentorSkills.map(skillName => ({
+    const allSkills = mentorSkills.map((skillName) => ({
       name: skillName,
-      ...skillProgressMap[skillName] || {
+      ...(skillProgressMap[skillName] || {
         totalAssignments: 0,
         completedAssignments: 0,
-        mentees: []
-      }
+        mentees: [],
+      }),
     }));
 
     return (
       <table className="min-w-full">
         <thead>
           <tr className="bg-white/[0.02]">
-            <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Skill Name</th>
+            <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+              Skill Name
+            </th>
             <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
               <div className="flex items-center gap-2">
                 <FiBook size={14} />
@@ -142,12 +160,14 @@ const ProgressTrack = () => {
                 <span>Completed</span>
               </div>
             </th>
-            <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+            <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-white/[0.03]">
           {allSkills.map((skill, index) => (
-            <motion.tr 
+            <motion.tr
               key={skill.name}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -162,17 +182,19 @@ const ProgressTrack = () => {
                   <div>
                     <div className="text-white font-medium">{skill.name}</div>
                     <div className="text-gray-400 text-sm">
-                      {skill.mentees.length > 0 
-                        ? `${skill.mentees.length} mentee(s) completed assignments` 
-                        : 'No completed assignments yet'}
+                      {skill.mentees.length > 0
+                        ? `${skill.mentees.length} mentee(s) completed assignments`
+                        : "No completed assignments yet"}
                     </div>
                   </div>
                 </div>
               </td>
               <td className="px-6 py-4 text-white">{skill.totalAssignments}</td>
-              <td className="px-6 py-4 text-white">{skill.completedAssignments}</td>
+              <td className="px-6 py-4 text-white">
+                {skill.completedAssignments}
+              </td>
               <td className="px-6 py-4">
-                <motion.button 
+                <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleCreateAssignment(skill.name, null)}
@@ -227,76 +249,105 @@ const ProgressTrack = () => {
                     <FiBook size={24} className="text-primary-color" />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-bold text-white">Created Assignments</h2>
-                    <p className="text-gray-400 mt-1">View and manage your created assignments by skill</p>
+                    <h2 className="text-3xl font-bold text-white">
+                      Created Assignments
+                    </h2>
+                    <p className="text-gray-400 mt-1">
+                      View and manage your created assignments by skill
+                    </p>
                   </div>
                 </div>
               </div>
 
               <div className="grid gap-4">
-                {Object.entries(assignmentsBySkill).map(([skillName, assignments]) => (
-                  <motion.div
-                    key={skillName}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-[#111936] border border-white/10 rounded-xl overflow-hidden"
-                  >
-                    <div 
-                      className="p-6 cursor-pointer hover:bg-white/[0.02] transition-colors"
-                      onClick={() => toggleSkillExpansion(skillName)}
+                {Object.entries(assignmentsBySkill).map(
+                  ([skillName, assignments]) => (
+                    <motion.div
+                      key={skillName}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-[#111936] border border-white/10 rounded-xl overflow-hidden"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-lg bg-primary-color/20 flex items-center justify-center">
-                            <FiBook size={20} className="text-primary-color" />
+                      <div
+                        className="p-6 cursor-pointer hover:bg-white/[0.02] transition-colors"
+                        onClick={() => toggleSkillExpansion(skillName)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-lg bg-primary-color/20 flex items-center justify-center">
+                              <FiBook
+                                size={20}
+                                className="text-primary-color"
+                              />
+                            </div>
+                            <div>
+                              <h3 className="text-xl font-bold text-white">
+                                {skillName}
+                              </h3>
+                              <p className="text-gray-400">
+                                {assignments.length} assignments
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="text-xl font-bold text-white">{skillName}</h3>
-                            <p className="text-gray-400">{assignments.length} assignments</p>
-                          </div>
+                          <button className="p-2 hover:bg-white/5 rounded-full transition-colors">
+                            {expandedSkills[skillName] ? (
+                              <FiChevronUp
+                                className="text-gray-400"
+                                size={20}
+                              />
+                            ) : (
+                              <FiChevronDown
+                                className="text-gray-400"
+                                size={20}
+                              />
+                            )}
+                          </button>
                         </div>
-                        <button className="p-2 hover:bg-white/5 rounded-full transition-colors">
-                          {expandedSkills[skillName] ? (
-                            <FiChevronUp className="text-gray-400" size={20} />
-                          ) : (
-                            <FiChevronDown className="text-gray-400" size={20} />
-                          )}
-                        </button>
                       </div>
-                    </div>
-                    
-                    {expandedSkills[skillName] && (
-                      <div className="border-t border-white/10">
-                        {assignments.map((assignment, index) => (
-                          <motion.div
-                            key={assignment._id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className="p-6 border-b border-white/10 last:border-b-0 hover:bg-white/[0.02] transition-colors"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h4 className="text-lg font-semibold text-white">{assignment.title}</h4>
-                                <p className="text-gray-400 mt-1">{assignment.description}</p>
-                                <div className="mt-3 flex items-center gap-4">
-                                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                                    <FiCalendar size={14} />
-                                    <span>{new Date(assignment.createdAt).toLocaleDateString()}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm text-primary-color">
-                                    <FiCheckCircle size={14} />
-                                    <span>Weightage: {assignment.weightage}%</span>
+
+                      {expandedSkills[skillName] && (
+                        <div className="border-t border-white/10">
+                          {assignments.map((assignment, index) => (
+                            <motion.div
+                              key={assignment._id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              className="p-6 border-b border-white/10 last:border-b-0 hover:bg-white/[0.02] transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h4 className="text-lg font-semibold text-white">
+                                    {assignment.title}
+                                  </h4>
+                                  <p className="text-gray-400 mt-1">
+                                    {assignment.description}
+                                  </p>
+                                  <div className="mt-3 flex items-center gap-4">
+                                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                                      <FiCalendar size={14} />
+                                      <span>
+                                        {new Date(
+                                          assignment.createdAt
+                                        ).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-primary-color">
+                                      <FiCheckCircle size={14} />
+                                      <span>
+                                        Weightage: {assignment.weightage}%
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  )
+                )}
               </div>
             </div>
 
@@ -306,8 +357,12 @@ const ProgressTrack = () => {
                   <FiUser size={24} className="text-primary-color" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-bold text-white">Mentees Progress</h2>
-                  <p className="text-gray-400 mt-1">Monitor your mentees' progress and achievements</p>
+                  <h2 className="text-3xl font-bold text-white">
+                    Mentees Progress
+                  </h2>
+                  <p className="text-gray-400 mt-1">
+                    Monitor your mentees' progress and achievements
+                  </p>
                 </div>
               </div>
 
@@ -323,9 +378,20 @@ const ProgressTrack = () => {
                     <div className="p-6">
                       <div className="flex items-center gap-6">
                         <div className="relative">
-                          <div className="w-16 h-16 rounded-full bg-primary-color/20 flex items-center justify-center">
-                            <span className="text-2xl font-bold text-primary-color">
-                              {mentee.learner.firstName[0]}{mentee.learner.lastName[0]}
+                          <div className="w-16 h-16 rounded-full bg-primary-color/20 flex items-center justify-center overflow-hidden border-2 border-primary-color/20 relative">
+                            {mentee.learner.profilePictureUrl ? (
+                              <img
+                                src={`http://localhost:5274/uploads/${mentee.learner.profilePictureUrl}`}
+                                alt={`${mentee.learner.firstName} ${mentee.learner.lastName}`}
+                                className="w-16 h-16 rounded-full object-cover absolute inset-0"
+                                onError={(e) => {
+                                  e.target.style.display = "none";
+                                }}
+                              />
+                            ) : null}
+                            <span className="text-2xl font-bold text-primary-color flex w-full h-full items-center justify-center">
+                              {mentee.learner.firstName[0]}
+                              {mentee.learner.lastName[0]}
                             </span>
                           </div>
                         </div>
@@ -333,33 +399,48 @@ const ProgressTrack = () => {
                           <h3 className="text-xl font-bold text-white">
                             {mentee.learner.firstName} {mentee.learner.lastName}
                           </h3>
-                          <p className="text-gray-400">{mentee.learner.email}</p>
+                          <p className="text-gray-400">
+                            {mentee.learner.email}
+                          </p>
                           <div className="mt-4 space-y-4">
                             <div>
                               <div className="flex items-center justify-between text-sm mb-2">
-                                <span className="text-gray-400">Overall Progress</span>
-                                <span className="text-white font-medium">{mentee.overallProgress}%</span>
-                            </div>
-                            <div className="h-2 rounded-full bg-white/[0.03] overflow-hidden">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                  animate={{ width: `${mentee.overallProgress}%` }}
-                                transition={{ duration: 1, ease: "easeOut" }}
+                                <span className="text-gray-400">
+                                  Overall Progress
+                                </span>
+                                <span className="text-white font-medium">
+                                  {mentee.overallProgress}%
+                                </span>
+                              </div>
+                              <div className="h-2 rounded-full bg-white/[0.03] overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{
+                                    width: `${mentee.overallProgress}%`,
+                                  }}
+                                  transition={{ duration: 1, ease: "easeOut" }}
                                   className="h-full rounded-full bg-gradient-to-r from-primary-color to-blue-500"
                                 />
                               </div>
                             </div>
-                            {mentee.skills.map(skill => (
+                            {mentee.skills.map((skill) => (
                               <div key={skill.name}>
                                 <div className="flex items-center justify-between text-sm mb-2">
-                                  <span className="text-gray-400">{skill.name}</span>
-                                  <span className="text-white font-medium">{skill.progress}%</span>
+                                  <span className="text-gray-400">
+                                    {skill.name}
+                                  </span>
+                                  <span className="text-white font-medium">
+                                    {skill.progress}%
+                                  </span>
                                 </div>
                                 <div className="h-2 rounded-full bg-white/[0.03] overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${skill.progress}%` }}
-                                    transition={{ duration: 1, ease: "easeOut" }}
+                                    transition={{
+                                      duration: 1,
+                                      ease: "easeOut",
+                                    }}
                                     className="h-full rounded-full bg-gradient-to-r from-primary-color/70 to-blue-500/70"
                                   />
                                 </div>
@@ -380,8 +461,12 @@ const ProgressTrack = () => {
                   <FiBook size={24} className="text-primary-color" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-bold text-white">Skills Progress</h2>
-                  <p className="text-gray-400 mt-1">Manage skills and assignments</p>
+                  <h2 className="text-3xl font-bold text-white">
+                    Skills Progress
+                  </h2>
+                  <p className="text-gray-400 mt-1">
+                    Manage skills and assignments
+                  </p>
                 </div>
               </div>
 
@@ -392,7 +477,7 @@ const ProgressTrack = () => {
           </motion.div>
         </div>
       </div>
-      <CreateAssignmentModal 
+      <CreateAssignmentModal
         isOpen={isModalOpen}
         onClose={handleModalClose}
         skillName={selectedSkill}

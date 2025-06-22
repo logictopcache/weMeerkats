@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiMessageSquare, FiArrowLeft, FiUser, FiSend, FiAward, FiCalendar, FiClock } from "react-icons/fi";
+import {
+  FiMessageSquare,
+  FiArrowLeft,
+  FiUser,
+  FiSend,
+  FiAward,
+  FiCalendar,
+  FiClock,
+} from "react-icons/fi";
 import MentorHeader from "../../../components/mentor/home/Header";
 import Navigation from "../../../components/mentor/home/Navigation";
 import { API_ENDPOINTS } from "../../../services/api/config";
@@ -38,7 +46,7 @@ const MenteeProfile = () => {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${localStorage.getItem('authToken')}`
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
             },
           }
         );
@@ -61,13 +69,11 @@ const MenteeProfile = () => {
 
   const handleSendRecommendation = async () => {
     if (!recommendation.trim()) return;
-    
+
     // TODO: Implement send recommendation API call
     console.log("Sending recommendation:", recommendation);
     setRecommendation("");
   };
-
-
 
   if (loading) {
     return (
@@ -122,7 +128,7 @@ const MenteeProfile = () => {
                   <ProfileAvatar
                     name={learnerProfile?.profile?.fullName}
                     email={learnerProfile?.profile?.email}
-                    image={learnerProfile?.profile?.profilePictureUrl}
+                    image={learnerProfile?.profile?.profilePicture}
                     size="lg"
                     style="shape"
                     className="w-24 h-24"
@@ -132,7 +138,9 @@ const MenteeProfile = () => {
                   </h2>
                   <div className="flex items-center gap-2 mt-2">
                     <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                    <span className="text-white/60 text-sm">{learnerProfile?.profile?.status}</span>
+                    <span className="text-white/60 text-sm">
+                      {learnerProfile?.profile?.status}
+                    </span>
                   </div>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -146,7 +154,9 @@ const MenteeProfile = () => {
                 </div>
 
                 <div className="space-y-4 pt-6 border-t border-white/10">
-                  <h3 className="text-lg font-semibold text-white">Skills to Learn</h3>
+                  <h3 className="text-lg font-semibold text-white">
+                    Skills to Learn
+                  </h3>
                   <div className="flex flex-wrap gap-2">
                     {learnerProfile?.skillsToLearn?.map((skill) => (
                       <span
@@ -166,18 +176,29 @@ const MenteeProfile = () => {
               {/* Bio Section */}
               <div className="bg-[#0c1631] backdrop-blur-xl rounded-2xl border border-white/10 p-6">
                 <h3 className="text-xl font-semibold text-white mb-4">About</h3>
-                <p className="text-white/80">{learnerProfile?.profile?.bio || "No bio available"}</p>
+                <p className="text-white/80">
+                  {learnerProfile?.profile?.bio || "No bio available"}
+                </p>
               </div>
 
               {/* Progress Status */}
               <div className="bg-[#0c1631] backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                <h3 className="text-xl font-semibold text-white mb-6">Learning Progress</h3>
+                <h3 className="text-xl font-semibold text-white mb-6">
+                  Learning Progress
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {learnerProfile?.learningProgress?.map((status) => (
-                    <div key={status.name} className="bg-white/[0.03] rounded-xl p-4 border border-white/10">
+                    <div
+                      key={status.name}
+                      className="bg-white/[0.03] rounded-xl p-4 border border-white/10"
+                    >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-white font-medium">{status.name}</span>
-                        <span className="text-primary-color font-semibold">{status.progress}%</span>
+                        <span className="text-white font-medium">
+                          {status.name}
+                        </span>
+                        <span className="text-primary-color font-semibold">
+                          {status.progress}%
+                        </span>
                       </div>
                       <div className="w-full bg-white/[0.03] rounded-full h-2">
                         <div
@@ -192,7 +213,9 @@ const MenteeProfile = () => {
 
               {/* Upcoming Sessions */}
               <div className="bg-[#0c1631] backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                <h3 className="text-xl font-semibold text-white mb-6">Upcoming Sessions</h3>
+                <h3 className="text-xl font-semibold text-white mb-6">
+                  Upcoming Sessions
+                </h3>
                 <div className="space-y-4">
                   {learnerProfile?.upcomingSessions?.map((session, index) => (
                     <div
@@ -204,14 +227,20 @@ const MenteeProfile = () => {
                           <FiUser className="w-5 h-5 text-primary-color" />
                         </div>
                         <div>
-                          <h4 className="text-white font-medium">{session.title}</h4>
-                          <p className="text-white/60 text-sm">{session.skill}</p>
+                          <h4 className="text-white font-medium">
+                            {session.title}
+                          </h4>
+                          <p className="text-white/60 text-sm">
+                            {session.skill}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2 text-white/80">
                           <FiCalendar className="w-4 h-4 text-primary-color" />
-                          <span className="text-sm">{new Date(session.date).toLocaleDateString()}</span>
+                          <span className="text-sm">
+                            {new Date(session.date).toLocaleDateString()}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2 text-white/80">
                           <FiClock className="w-4 h-4 text-primary-color" />
@@ -220,7 +249,8 @@ const MenteeProfile = () => {
                       </div>
                     </div>
                   ))}
-                  {(!learnerProfile?.upcomingSessions || learnerProfile.upcomingSessions.length === 0) && (
+                  {(!learnerProfile?.upcomingSessions ||
+                    learnerProfile.upcomingSessions.length === 0) && (
                     <div className="text-center py-6 text-white/60">
                       No upcoming sessions scheduled
                     </div>
@@ -230,7 +260,9 @@ const MenteeProfile = () => {
 
               {/* Recommendation Section */}
               <div className="bg-[#0c1631] backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                <h3 className="text-xl font-semibold text-white mb-4">Give Recommendation</h3>
+                <h3 className="text-xl font-semibold text-white mb-4">
+                  Give Recommendation
+                </h3>
                 <textarea
                   value={recommendation}
                   onChange={(e) => setRecommendation(e.target.value)}

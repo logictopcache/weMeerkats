@@ -1,27 +1,31 @@
-import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { createConversation, fetchMentorConversations } from '../../../services/api/mentorApi';
-import { fetchMenteesProgress } from '../../../services/api/mentorProgressApi';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import ProfileAvatar from '../../../components/ProfileAvatar';
+import PropTypes from "prop-types";
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  createConversation,
+  fetchMentorConversations,
+} from "../../../services/api/mentorApi";
+import { fetchMenteesProgress } from "../../../services/api/mentorProgressApi";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import ProfileAvatar from "../../../components/ProfileAvatar";
 
 const MenteeCard = ({ mentee, onStartChat }) => {
   const navigate = useNavigate();
   const [progressData, setProgressData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const loadProgressData = async () => {
       try {
         const data = await fetchMenteesProgress();
         const menteeProgress = data.menteeProgress.find(
-          progress => progress.learner._id === mentee._id
+          (progress) => progress.learner._id === mentee._id
         );
         setProgressData(menteeProgress);
       } catch (error) {
-        console.error('Error loading mentee progress:', error);
+        console.error("Error loading mentee progress:", error);
       } finally {
         setIsLoading(false);
       }
@@ -32,7 +36,7 @@ const MenteeCard = ({ mentee, onStartChat }) => {
 
   if (isLoading) {
     return (
-      <motion.div 
+      <motion.div
         layout
         className="bg-[#0c1631] backdrop-blur-xl rounded-2xl border border-white/10 p-4 md:p-6"
       >
@@ -47,9 +51,9 @@ const MenteeCard = ({ mentee, onStartChat }) => {
       </motion.div>
     );
   }
-  
+
   return (
-    <motion.div 
+    <motion.div
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -62,13 +66,22 @@ const MenteeCard = ({ mentee, onStartChat }) => {
           {/* Left Side - Avatar */}
           <div className="flex flex-col items-center md:items-start">
             <div className="relative">
-              <div className="border-2 border-primary-color/20 rounded-full">
-                <ProfileAvatar
-                  name={`${mentee.firstName} ${mentee.lastName}`}
-                  email={mentee.email}
-                  size="lg"
-                  style="character"
-                />
+              <div className="border-2 border-primary-color/20 rounded-full overflow-hidden">
+                {mentee.profilePictureUrl && !imageError ? (
+                  <img
+                    src={`http://localhost:5274/uploads/${mentee.profilePictureUrl}`}
+                    alt={`${mentee.firstName} ${mentee.lastName}`}
+                    className="w-16 h-16 rounded-full object-cover"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <ProfileAvatar
+                    name={`${mentee.firstName} ${mentee.lastName}`}
+                    email={mentee.email}
+                    size="lg"
+                    style="character"
+                  />
+                )}
               </div>
               <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#0c1631]" />
             </div>
@@ -86,7 +99,7 @@ const MenteeCard = ({ mentee, onStartChat }) => {
                 <span className="text-white/60 text-sm">Active Learner</span>
                 <span className="text-white/40">•</span>
                 <span className="text-white/60 text-sm">
-                  {mentee.skills?.map(skill => skill.name).join(', ')}
+                  {mentee.skills?.map((skill) => skill.name).join(", ")}
                 </span>
               </div>
             </div>
@@ -95,17 +108,23 @@ const MenteeCard = ({ mentee, onStartChat }) => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-white/60 text-sm">Learning Progress</span>
-                <span className="text-white/80 text-sm">{mentee.overallProgress}%</span>
+                <span className="text-white/80 text-sm">
+                  {mentee.overallProgress}%
+                </span>
               </div>
               <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-primary-color to-blue-500 rounded-full transition-all duration-500"
                   style={{ width: `${mentee.overallProgress}%` }}
                 />
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-white/40">{mentee.completedSessions} assignments completed</span>
-                <span className="text-white/40">{mentee.totalSessions} total assignments</span>
+                <span className="text-white/40">
+                  {mentee.completedSessions} assignments completed
+                </span>
+                <span className="text-white/40">
+                  {mentee.totalSessions} total assignments
+                </span>
               </div>
             </div>
 
@@ -115,17 +134,23 @@ const MenteeCard = ({ mentee, onStartChat }) => {
                 <div key={index} className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-white/60 text-sm">{skill.name}</span>
-                    <span className="text-white/80 text-sm">{skill.progress}%</span>
+                    <span className="text-white/80 text-sm">
+                      {skill.progress}%
+                    </span>
                   </div>
                   <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-gradient-to-r from-primary-color to-blue-500 rounded-full transition-all duration-500"
                       style={{ width: `${skill.progress}%` }}
                     />
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-white/40">{skill.completedAssignments} completed</span>
-                    <span className="text-white/40">{skill.totalAssignments} total</span>
+                    <span className="text-white/40">
+                      {skill.completedAssignments} completed
+                    </span>
+                    <span className="text-white/40">
+                      {skill.totalAssignments} total
+                    </span>
                   </div>
                 </div>
               ))}
@@ -134,7 +159,7 @@ const MenteeCard = ({ mentee, onStartChat }) => {
 
           {/* Right Side - Actions */}
           <div className="flex flex-row md:flex-col gap-2 min-w-[140px] justify-center md:justify-start">
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="flex-1 md:flex-none px-3 md:px-4 py-2 bg-gradient-to-r from-emerald-500 to-blue-500 text-white rounded-lg hover:opacity-90 transition-all duration-300 flex items-center justify-center gap-2 text-sm font-medium"
@@ -142,7 +167,7 @@ const MenteeCard = ({ mentee, onStartChat }) => {
             >
               View Profile
             </motion.button>
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="flex-1 md:flex-none px-3 md:px-4 py-2 bg-amber-500 text-white rounded-lg hover:opacity-90 transition-all duration-300 flex items-center justify-center gap-2 text-sm font-medium"
@@ -150,11 +175,11 @@ const MenteeCard = ({ mentee, onStartChat }) => {
             >
               Start Chat
             </motion.button>
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="flex-1 md:flex-none px-3 md:px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:opacity-90 transition-all duration-300 flex items-center justify-center gap-2 text-sm font-medium"
-              onClick={() => navigate('/mentor/progress')}
+              onClick={() => navigate("/mentor/progress")}
             >
               View Progress
             </motion.button>
@@ -173,13 +198,13 @@ const ActiveMentees = ({ mentees }) => {
 
   const nextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(prev => prev + 1);
+      setCurrentPage((prev) => prev + 1);
     }
   };
 
   const prevPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
+      setCurrentPage((prev) => prev - 1);
     }
   };
 
@@ -189,37 +214,37 @@ const ActiveMentees = ({ mentees }) => {
 
   const handleStartChat = async (learnerId) => {
     try {
-      const mentorId = localStorage.getItem('userId');
+      const mentorId = localStorage.getItem("userId");
       if (!mentorId) {
-        console.error('No mentor ID found');
+        console.error("No mentor ID found");
         return;
       }
-      
+
       const conversations = await fetchMentorConversations(mentorId);
       const existingConversation = conversations.find(
-        conv => conv.learnerId._id === learnerId
+        (conv) => conv.learnerId._id === learnerId
       );
 
       if (existingConversation) {
-        navigate('/mentor/messages', {
-          state: { 
-            conversationId: existingConversation._id, 
-            selectedLearnerId: learnerId 
-          }
+        navigate("/mentor/messages", {
+          state: {
+            conversationId: existingConversation._id,
+            selectedLearnerId: learnerId,
+          },
         });
       } else {
         const result = await createConversation(mentorId, learnerId);
         if (result) {
-          navigate('/mentor/messages', {
-            state: { 
-              conversationId: result._id, 
-              selectedLearnerId: learnerId 
-            }
+          navigate("/mentor/messages", {
+            state: {
+              conversationId: result._id,
+              selectedLearnerId: learnerId,
+            },
           });
         }
       }
     } catch (error) {
-      console.error('Error handling conversation:', error);
+      console.error("Error handling conversation:", error);
     }
   };
 
@@ -228,8 +253,12 @@ const ActiveMentees = ({ mentees }) => {
       <div className="max-w-[1200px] mx-auto px-4 py-5">
         <div className="flex items-center justify-between mb-6">
           <div className="space-y-1 pl-2">
-            <h2 className="text-2xl md:text-3xl font-bold text-white">Active Mentees</h2>
-            <p className="text-white/60">Managing {mentees.length} active mentorship connections</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-white">
+              Active Mentees
+            </h2>
+            <p className="text-white/60">
+              Managing {mentees.length} active mentorship connections
+            </p>
           </div>
 
           {totalPages > 1 && (
@@ -241,8 +270,8 @@ const ActiveMentees = ({ mentees }) => {
                 disabled={currentPage === 1}
                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
                   currentPage === 1
-                    ? 'bg-white/5 text-white/20 cursor-not-allowed'
-                    : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                    ? "bg-white/5 text-white/20 cursor-not-allowed"
+                    : "bg-white/5 text-white/60 hover:bg-white/10 border border-white/10"
                 }`}
               >
                 <FiChevronLeft className="w-5 h-5" />
@@ -262,8 +291,8 @@ const ActiveMentees = ({ mentees }) => {
                 disabled={currentPage === totalPages}
                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
                   currentPage === totalPages
-                    ? 'bg-white/5 text-white/20 cursor-not-allowed'
-                    : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                    ? "bg-white/5 text-white/20 cursor-not-allowed"
+                    : "bg-white/5 text-white/60 hover:bg-white/10 border border-white/10"
                 }`}
               >
                 <FiChevronRight className="w-5 h-5" />
@@ -283,8 +312,8 @@ const ActiveMentees = ({ mentees }) => {
                   disabled={currentPage === 1}
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                     currentPage === 1
-                      ? 'bg-white/5 text-white/20 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-primary-color to-blue-500 text-white shadow-lg shadow-primary-color/20'
+                      ? "bg-white/5 text-white/20 cursor-not-allowed"
+                      : "bg-gradient-to-r from-primary-color to-blue-500 text-white shadow-lg shadow-primary-color/20"
                   }`}
                 >
                   <FiChevronLeft className="w-5 h-5" />
@@ -299,8 +328,8 @@ const ActiveMentees = ({ mentees }) => {
                   disabled={currentPage === totalPages}
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                     currentPage === totalPages
-                      ? 'bg-white/5 text-white/20 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-primary-color to-blue-500 text-white shadow-lg shadow-primary-color/20'
+                      ? "bg-white/5 text-white/20 cursor-not-allowed"
+                      : "bg-gradient-to-r from-primary-color to-blue-500 text-white shadow-lg shadow-primary-color/20"
                   }`}
                 >
                   <FiChevronRight className="w-5 h-5" />
@@ -312,9 +341,9 @@ const ActiveMentees = ({ mentees }) => {
           <div className="space-y-4 overflow-hidden">
             <AnimatePresence mode="wait">
               {currentMentees.map((mentee) => (
-                <MenteeCard 
-                  key={mentee._id} 
-                  mentee={mentee} 
+                <MenteeCard
+                  key={mentee._id}
+                  mentee={mentee}
                   onStartChat={handleStartChat}
                 />
               ))}
@@ -338,8 +367,8 @@ const ActiveMentees = ({ mentees }) => {
                 onClick={() => setCurrentPage(index + 1)}
                 className={`w-2 h-2 rounded-full transition-all duration-300 ${
                   currentPage === index + 1
-                    ? 'bg-gradient-to-r from-primary-color to-blue-500 scale-125'
-                    : 'bg-white/10 hover:bg-white/20'
+                    ? "bg-gradient-to-r from-primary-color to-blue-500 scale-125"
+                    : "bg-white/10 hover:bg-white/20"
                 }`}
               />
             ))}
@@ -357,9 +386,9 @@ MenteeCard.propTypes = {
     lastName: PropTypes.string.isRequired,
     image: PropTypes.string,
     skills: PropTypes.arrayOf(PropTypes.string),
-    nextSession: PropTypes.string
+    nextSession: PropTypes.string,
   }).isRequired,
-  onStartChat: PropTypes.func.isRequired
+  onStartChat: PropTypes.func.isRequired,
 };
 
 ActiveMentees.propTypes = {
@@ -371,9 +400,9 @@ ActiveMentees.propTypes = {
       email: PropTypes.string.isRequired,
       image: PropTypes.string,
       skills: PropTypes.arrayOf(PropTypes.string),
-      nextSession: PropTypes.string
+      nextSession: PropTypes.string,
     })
-  ).isRequired
+  ).isRequired,
 };
 
 export default ActiveMentees;
