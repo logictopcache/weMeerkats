@@ -151,7 +151,7 @@ router.get("/learner-profile/:id", async (req, res) => {
     const learner = await Learner.findById(id);
     const profileWithEmail = {
       ...profile.toObject(),
-      email: learner ? learner.email : null
+      email: learner ? learner.email : null,
     };
 
     res.status(200).json(profileWithEmail);
@@ -203,23 +203,40 @@ router.post("/learner/appointment", authMiddleware, async (req, res) => {
 
     // Verify mentor teaches this skill
     if (!mentorProfile.skills.includes(skill)) {
-      return res.status(400).json({ error: "Mentor does not teach this skill" });
+      return res
+        .status(400)
+        .json({ error: "Mentor does not teach this skill" });
     }
 
     // Check if the time slot is available for this skill
     const appointmentDate = new Date(appointmentDateTime);
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const days = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
     const dayOfWeek = days[appointmentDate.getDay()];
-    const timeSlot = appointmentDate.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    const timeSlot = appointmentDate.toLocaleTimeString("en-US", {
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
-    const availableSlot = mentorProfile.availability[dayOfWeek]?.find(slot => 
-      slot.startTime === timeSlot && 
-      slot.isAvailable && 
-      slot.skills.includes(skill)
+    const availableSlot = mentorProfile.availability[dayOfWeek]?.find(
+      (slot) =>
+        slot.startTime === timeSlot &&
+        slot.isAvailable &&
+        slot.skills.includes(skill)
     );
 
     if (!availableSlot) {
-      return res.status(400).json({ error: "Selected time slot is not available for this skill" });
+      return res
+        .status(400)
+        .json({ error: "Selected time slot is not available for this skill" });
     }
 
     const learner = await Learner.findById(learnerId);
@@ -259,23 +276,23 @@ router.post("/learner/appointment", authMiddleware, async (req, res) => {
 
     // Send notification to mentor about the new appointment request
     try {
-      console.log('Sending notification to mentor:', {
+      console.log("Sending notification to mentor:", {
         mentorId,
         learnerName,
         appointmentDateTime,
-        skill
+        skill,
       });
-      
+
       await NotificationService.notifyAppointmentBooked(
         mentorId,
         learnerName,
         appointmentDateTime,
         skill
       );
-      
-      console.log('Notification sent successfully');
+
+      console.log("Notification sent successfully");
     } catch (notificationError) {
-      console.error('Failed to send notification:', notificationError);
+      console.error("Failed to send notification:", notificationError);
       // Continue with the response even if notification fails
     }
 
