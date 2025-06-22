@@ -79,7 +79,6 @@ const BookAppointment = () => {
 
           // Set the first skill as default if available
           if (profileData.skills?.length > 0) {
-            console.log("Setting default skill:", profileData.skills[0]);
             setSelectedSkill(profileData.skills[0]);
           }
         }

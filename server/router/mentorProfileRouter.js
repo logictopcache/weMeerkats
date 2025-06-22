@@ -757,20 +757,11 @@ router.get("/mentor/:mentorId/available-slots/:skill", async (req, res) => {
     ];
     const dayOfWeek = days[requestedDate.getDay()];
 
-    console.log("Debug info:", {
-      requestedDate,
-      dayOfWeek,
-      availableSlots: mentorProfile.availability[dayOfWeek],
-      requestedSkill: skill,
-    });
-
     // Get all time slots for that day that are available and include the requested skill
     const availableSlots =
       mentorProfile.availability[dayOfWeek]?.filter(
         (slot) => slot.isAvailable && slot.skills.includes(skill)
       ) || [];
-
-    console.log("Filtered slots:", availableSlots);
 
     // Get existing appointments for the requested date
     const startOfDay = new Date(requestedDate);
@@ -788,7 +779,6 @@ router.get("/mentor/:mentorId/available-slots/:skill", async (req, res) => {
       status: { $nin: ["cancelled", "rejected"] },
     });
 
-    console.log("Existing appointments:", existingAppointments);
 
     // Filter out slots that already have appointments
     const availableSlotsWithoutBookings = availableSlots.filter((slot) => {

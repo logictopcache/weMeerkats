@@ -38,7 +38,6 @@ const MentorProfile = () => {
       setUserProfile(profileResponse);
 
       // Debug log to check profile data
-      console.log("Mentor profile data loaded:", profileResponse);
     } catch (error) {
       console.error("Error loading profile data:", error);
       toast.error("Failed to load profile data");

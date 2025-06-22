@@ -71,7 +71,6 @@ const MenteeProfile = () => {
     if (!recommendation.trim()) return;
 
     // TODO: Implement send recommendation API call
-    console.log("Sending recommendation:", recommendation);
     setRecommendation("");
   };
 

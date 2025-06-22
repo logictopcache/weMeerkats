@@ -779,16 +779,9 @@ router.post(
         return res.status(404).json({ error: "Assignment not found" });
       }
 
-      console.log("Processing assignment completion:", {
-        assignmentId,
-        skillName: assignment.skillName,
-        learnerId: req.learner._id,
-      });
-
       // Get or create progress record
       let progress = await Progress.findOne({ learnerId: req.learner._id });
       if (!progress) {
-        console.log("Creating new progress record for learner");
         progress = new Progress({ learnerId: req.learner._id });
       }
 
@@ -797,7 +790,6 @@ router.post(
         (s) => s.skillName === assignment.skillName
       );
       if (!skillProgress) {
-        console.log("Creating new skill progress entry");
         skillProgress = {
           skillName: assignment.skillName,
           completedAssignments: [],
@@ -817,15 +809,9 @@ router.post(
 
       // Add assignment to completed list
       skillProgress.completedAssignments.push(assignmentId);
-      console.log("Added assignment to completed list");
 
       // Save progress - the pre-save middleware will update the progress percentage
       await progress.save();
-      console.log(
-        "Progress saved, recalculated progress:",
-        progress.skillProgress.find((s) => s.skillName === assignment.skillName)
-          .progress
-      );
 
       // Update learning path progress
       const learningPath = await LearningPath.findOne({
@@ -839,21 +825,9 @@ router.post(
           const updatedProgress = progress.skillProgress.find(
             (s) => s.skillName === assignment.skillName
           ).progress;
-          console.log("Updating learning path progress:", {
-            skillName: assignment.skillName,
-            progress: updatedProgress,
-          });
           learningPath.selectedSkills[skillIndex].progress = updatedProgress;
           await learningPath.save();
-          console.log("Learning path updated with new progress");
-        } else {
-          console.log(
-            "Skill not found in learning path:",
-            assignment.skillName
-          );
         }
-      } else {
-        console.log("No learning path found for learner");
       }
 
       // Fetch the updated skill progress to return in response
@@ -1159,7 +1133,6 @@ router.get(
         learningProgress: skillsProgress,
         upcomingSessions: upcomingAppointments.map((appointment) => {
           // Add debug logging
-          console.log("Appointment mentor data:", appointment.mentorId);
 
           return {
             title: appointment.mentorId

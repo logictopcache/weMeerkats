@@ -67,12 +67,10 @@ const MenteeSection = ({ title, subtitle }) => {
       submitData.append('skills', JSON.stringify(formData.skills));
       if (profilePicture) {
         submitData.append('image', profilePicture);
-        console.log('Profile picture appended:', profilePicture.name);
       }
 
       // Debug FormData contents
       for (let [key, value] of submitData.entries()) {
-        console.log(`FormData: ${key} =`, value);
       }
 
       await handleSubmit(submitData);
@@ -106,7 +104,6 @@ const MenteeSection = ({ title, subtitle }) => {
     const file = e.target.files[0];
     if (file) {
       setProfilePicture(file);
-      console.log('Selected file:', file.name); // Debug
     } else {
       setProfilePicture(null);
     }

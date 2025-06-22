@@ -132,10 +132,8 @@ router.post("/learner/conversation", authMiddleware, async (req, res) => {
 router.get("/learner-profile/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("Searching for profile with ID:", id);
 
     const profile = await LearnerProfile.findOne({ learnerId: id });
-    console.log("Found profile:", profile);
 
     if (!profile) {
       const allProfiles = await LearnerProfile.find({});
@@ -308,21 +306,12 @@ router.post("/learner/appointment", authMiddleware, async (req, res) => {
 
     // Send notification to mentor about the new appointment request
     try {
-      console.log("Sending notification to mentor:", {
-        mentorId,
-        learnerName,
-        appointmentDateTime,
-        skill,
-      });
-
       await NotificationService.notifyAppointmentBooked(
         mentorId,
         learnerName,
         appointmentDateTime,
         skill
       );
-
-      console.log("Notification sent successfully");
     } catch (notificationError) {
       console.error("Failed to send notification:", notificationError);
       // Continue with the response even if notification fails

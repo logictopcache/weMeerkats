@@ -172,8 +172,6 @@ export default function QuizApp() {
         timeTaken: timeTaken,
       };
 
-      console.log("Saving quiz result:", quizResultData); // Debug log
-
       const response = await quizService.saveQuizResult(quizResultData);
 
       if (response.success) {
@@ -895,10 +893,6 @@ export default function QuizApp() {
                               ? quizData.totalCorrectAnswers + 1
                               : quizData.totalCorrectAnswers;
 
-                          console.log(
-                            "Manual finish - Final score:",
-                            finalScore
-                          ); // Debug log
                           setTimeout(() => {
                             saveQuizResult(finalScore);
                           }, 1000);

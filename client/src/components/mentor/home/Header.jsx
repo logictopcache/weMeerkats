@@ -24,7 +24,6 @@ const MentorHeader = () => {
       try {
         const profile = await fetchUserProfile(true);
         setUserProfile(profile);
-        console.log("Mentor header profile loaded:", profile);
       } catch (error) {
         console.error("Error loading profile:", error);
       } finally {

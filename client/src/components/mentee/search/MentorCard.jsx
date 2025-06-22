@@ -1,65 +1,67 @@
-import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { MessageCircle, Star, User } from 'lucide-react';
-import { createMenteeConversation, fetchMenteeConversations } from '../../../services/api/menteeApi';
-import { toast } from 'react-toastify';
+import PropTypes from "prop-types";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { MessageCircle, Star, User } from "lucide-react";
+import {
+  createMenteeConversation,
+  fetchMenteeConversations,
+} from "../../../services/api/menteeApi";
+import { toast } from "react-toastify";
 
 const MentorCard = ({ mentor }) => {
   const navigate = useNavigate();
 
   const handleSendMessage = async () => {
     try {
-      const userId = localStorage.getItem('userId');
+      const userId = localStorage.getItem("userId");
       const mentorId = mentor._id || mentor.id;
-      
+
       if (!mentorId) {
-        console.error('No mentor ID found:', mentor);
-        toast.error('Could not find mentor information. Please try again.');
+        console.error("No mentor ID found:", mentor);
+        toast.error("Could not find mentor information. Please try again.");
         return;
       }
 
       if (!userId) {
-        console.error('No user ID found');
-        toast.error('Please sign in to send messages');
+        console.error("No user ID found");
+        toast.error("Please sign in to send messages");
         return;
       }
 
       // First check if conversation already exists
       const conversations = await fetchMenteeConversations(userId);
       const existingConversation = conversations.find(
-        conv => conv.mentorId._id === mentorId
+        (conv) => conv.mentorId._id === mentorId
       );
 
       if (existingConversation) {
-        console.log('Conversation already exists:', existingConversation);
         // If conversation exists, navigate to it
-        navigate('/mentee/messages', {
-          state: { 
-            conversationId: existingConversation._id, 
-            selectedMentorId: mentorId 
-          }
+        navigate("/mentee/messages", {
+          state: {
+            conversationId: existingConversation._id,
+            selectedMentorId: mentorId,
+          },
         });
       } else {
         // If no conversation exists, create one
         const result = await createMenteeConversation(mentorId, userId);
-        console.log('Result:', result);
         if (result.conversation) {
-          console.log('New conversation created:', result.conversation);
-          navigate('/mentee/messages', {
-            state: { 
-              conversationId: result.conversation._id, 
-              selectedMentorId: mentorId 
-            }
+          navigate("/mentee/messages", {
+            state: {
+              conversationId: result.conversation._id,
+              selectedMentorId: mentorId,
+            },
           });
         }
       }
     } catch (error) {
-      console.error('Error handling conversation:', error);
-      if (error.response?.data?.error === 'conversation already exists') {
-        toast.error('A conversation with this mentor already exists. Please check your messages.');
+      console.error("Error handling conversation:", error);
+      if (error.response?.data?.error === "conversation already exists") {
+        toast.error(
+          "A conversation with this mentor already exists. Please check your messages."
+        );
       } else {
-        toast.error('Failed to start conversation');
+        toast.error("Failed to start conversation");
       }
     }
   };
@@ -78,24 +80,26 @@ const MentorCard = ({ mentor }) => {
     >
       {/* Gradient Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-r from-primary-color/20 to-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      
+
       {/* Card Content */}
       <div className="relative bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
         <div className="relative">
-          <img 
-            src={mentor.image} 
-            alt={mentor.name} 
+          <img
+            src={mentor.image}
+            alt={mentor.name}
             className="w-full h-50 object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A1128]/90 to-transparent" />
         </div>
-        
+
         <div className="p-6 space-y-4">
           <div>
             <h3 className="font-bold text-xl text-white mb-1 group-hover:text-primary-color transition-colors">
               {mentor.name}
             </h3>
-            <p className="text-primary-color/90 font-medium">{mentor.specialty}</p>
+            <p className="text-primary-color/90 font-medium">
+              {mentor.specialty}
+            </p>
           </div>
 
           <div className="flex items-center gap-1">
@@ -103,19 +107,21 @@ const MentorCard = ({ mentor }) => {
               <Star
                 key={index}
                 className={`w-4 h-4 ${
-                  index < mentor.rating 
-                    ? "fill-primary-color text-primary-color" 
+                  index < mentor.rating
+                    ? "fill-primary-color text-primary-color"
                     : "text-white/20"
                 }`}
               />
             ))}
-            <span className="text-white/60 text-sm ml-2">{mentor.rating}.0</span>
+            <span className="text-white/60 text-sm ml-2">
+              {mentor.rating}.0
+            </span>
           </div>
 
           <div className="flex flex-wrap gap-2">
             {mentor.skills.map((skill, index) => (
-              <span 
-                key={index} 
+              <span
+                key={index}
                 className="px-3 py-1 bg-white/5 backdrop-blur-sm border border-white/5 rounded-full text-xs text-white/80 hover:border-primary-color/50 transition-colors"
               >
                 {skill}
@@ -162,4 +168,4 @@ MentorCard.propTypes = {
   }).isRequired,
 };
 
-export default MentorCard; 
+export default MentorCard;

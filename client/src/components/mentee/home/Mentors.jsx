@@ -25,7 +25,6 @@ const MentorCard = ({ mentor }) => {
       );
 
       if (existingConversation) {
-        console.log("Conversation already exists:", existingConversation);
         // If conversation exists, navigate to it
         navigate("/mentee/messages", {
           state: {
@@ -36,9 +35,7 @@ const MentorCard = ({ mentor }) => {
       } else {
         // If no conversation exists, create one
         const result = await createMenteeConversation(mentor._id, userId);
-        console.log("Result:", result);
         if (result.conversation) {
-          console.log("New conversation created:", result.conversation);
           navigate("/mentee/messages", {
             state: {
               conversationId: result.conversation._id,

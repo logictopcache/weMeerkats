@@ -76,7 +76,6 @@ const Message_Mentor = () => {
         setLoading(true);
 
         const conversationsData = await fetchMenteeConversations(userId);
-        console.log(conversationsData);
 
         const formattedConversations = conversationsData.map((conv) => ({
           id: conv._id,

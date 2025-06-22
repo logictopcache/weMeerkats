@@ -50,7 +50,6 @@ const MenteeProfile = () => {
       setQuizResults(quizResponse.results || []);
 
       // Debug log to check profile data
-      console.log("Profile data loaded:", profileResponse);
 
       // Calculate quiz statistics
       const results = quizResponse.results || [];

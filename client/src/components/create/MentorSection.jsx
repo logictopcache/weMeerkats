@@ -126,7 +126,6 @@ const MentorSection = ({ title, subtitle }) => {
     const file = e.target.files[0];
     if (file) {
       setProfilePicture(file);
-      console.log("Selected file:", file.name); // Debug
     } else {
       setProfilePicture(null);
     }
@@ -174,7 +173,6 @@ const MentorSection = ({ title, subtitle }) => {
       submitData.append("bio", formData.bio || "");
       if (profilePicture) {
         submitData.append("image", profilePicture);
-        console.log("Profile picture appended:", profilePicture.name);
       }
 
       // Append education and work experience as JSON strings
@@ -288,13 +286,6 @@ const MentorSection = ({ title, subtitle }) => {
       skill.toLowerCase().includes(searchTerm.toLowerCase()) &&
       !selectedSkills.includes(skill)
   );
-
-  // Add debug logs
-  console.log("Search Term:", searchTerm);
-  console.log("Skills List:", skillsList);
-  console.log("Filtered Skills:", filteredSkills);
-  console.log("Loading:", isLoadingSkills);
-  console.log("Error:", skillsError);
 
   const formSectionVariants = {
     hidden: { opacity: 0, y: 20 },
