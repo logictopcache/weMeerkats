@@ -273,116 +273,113 @@ const MenteeProfile = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-                className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+                className="space-y-8"
               >
-                {/* Performance Overview */}
-                <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
-                  <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                    <FiBarChart className="text-primary-color" />
-                    Performance Overview
-                  </h3>
+                {/* Profile Information Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Bio Section */}
+                  <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                    <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                      <FiUser className="text-primary-color" />
+                      About Me
+                    </h3>
 
-                  {quizStats.bestCategory ? (
-                    <div className="space-y-4">
-                      <div className="bg-white/5 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-white/80">Best Category</span>
-                          <Trophy className="w-5 h-5 text-yellow-500" />
-                        </div>
-                        <div className="text-lg font-semibold text-white">
-                          {quizStats.bestCategory.category}
-                        </div>
-                        <div
-                          className={`text-sm ${getPerformanceColor(
-                            quizStats.bestCategory.percentage
-                          )}`}
-                        >
-                          {quizStats.bestCategory.percentage}% (
-                          {quizStats.bestCategory.score}/5)
-                        </div>
+                    {userProfile?.bio ? (
+                      <div className="text-white/80 leading-relaxed">
+                        {userProfile.bio}
                       </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <FiUser className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                        <p className="text-white/60">No bio available</p>
+                        <p className="text-white/40 text-sm">
+                          Add a bio to tell others about yourself
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
-                      <div className="bg-white/5 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-white/80">Learning Streak</span>
-                          <Star className="w-5 h-5 text-primary-color" />
-                        </div>
-                        <div className="text-lg font-semibold text-white">
-                          {quizStats.totalQuizzes} Quiz
-                          {quizStats.totalQuizzes !== 1 ? "es" : ""}
-                        </div>
-                        <div className="text-sm text-white/60">
-                          Keep up the great work!
-                        </div>
+                  {/* Skills Section */}
+                  <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                    <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                      <FiTarget className="text-primary-color" />
+                      Skills
+                    </h3>
+
+                    {userProfile?.skills && userProfile.skills.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {userProfile.skills.map((skill, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="px-3 py-1 bg-primary-color/10 border border-primary-color/20 rounded-full text-primary-color text-sm"
+                          >
+                            {skill}
+                          </motion.div>
+                        ))}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <BookOpen className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                      <p className="text-white/60">
-                        No quiz data available yet
-                      </p>
-                      <p className="text-white/40 text-sm">
-                        Take your first quiz to see your performance
-                      </p>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="text-center py-8">
+                        <FiTarget className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                        <p className="text-white/60">No skills listed</p>
+                        <p className="text-white/40 text-sm">
+                          Add skills to showcase your expertise
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Recent Activity */}
+                {/* Education Section */}
                 <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
                   <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                    <FiClock className="text-primary-color" />
-                    Recent Activity
+                    <FiAward className="text-primary-color" />
+                    Education
                   </h3>
 
-                  {quizStats.recentActivity.length > 0 ? (
-                    <div className="space-y-3">
-                      {quizStats.recentActivity.map((activity, index) => (
+                  {userProfile?.education &&
+                  userProfile.education.length > 0 ? (
+                    <div className="space-y-4">
+                      {userProfile.education.map((edu, index) => (
                         <motion.div
                           key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          className="flex items-center justify-between p-3 bg-white/5 rounded-lg"
+                          className="bg-white/5 rounded-lg p-4 border border-white/5"
                         >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                activity.percentage >= 80
-                                  ? "bg-green-500/20"
-                                  : activity.percentage >= 60
-                                  ? "bg-blue-500/20"
-                                  : "bg-yellow-500/20"
-                              }`}
-                            >
-                              {activity.percentage >= 80 ? (
-                                <Trophy className="w-4 h-4 text-green-500" />
-                              ) : activity.percentage >= 60 ? (
-                                <Medal className="w-4 h-4 text-blue-500" />
-                              ) : (
-                                <Star className="w-4 h-4 text-yellow-500" />
+                          <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-full bg-primary-color/10 flex items-center justify-center flex-shrink-0">
+                              <FiAward className="w-5 h-5 text-primary-color" />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-white font-semibold text-lg">
+                                {edu.degree || "Degree"}
+                              </h4>
+                              <p className="text-primary-color font-medium">
+                                {edu.universityName || "Institution"}
+                              </p>
+                              <div className="flex items-center gap-4 mt-2 text-sm text-white/60">
+                                {edu.location && (
+                                  <span className="flex items-center gap-1">
+                                    <FiCalendar size={14} />
+                                    {edu.location}
+                                  </span>
+                                )}
+                                {edu.duration && (
+                                  <span className="flex items-center gap-1">
+                                    <FiClock size={14} />
+                                    {edu.duration}
+                                  </span>
+                                )}
+                              </div>
+                              {edu.description && (
+                                <p className="text-white/70 text-sm mt-2">
+                                  {edu.description}
+                                </p>
                               )}
-                            </div>
-                            <div>
-                              <div className="text-white font-medium text-sm">
-                                {activity.category}
-                              </div>
-                              <div className="text-white/60 text-xs">
-                                {formatDate(activity.completedAt)}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div
-                              className={`font-semibold ${getPerformanceColor(
-                                activity.percentage
-                              )}`}
-                            >
-                              {activity.percentage}%
-                            </div>
-                            <div className="text-white/60 text-xs">
-                              {activity.score}/5
                             </div>
                           </div>
                         </motion.div>
@@ -390,13 +387,142 @@ const MenteeProfile = () => {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <Clock className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                      <p className="text-white/60">No recent activity</p>
+                      <FiAward className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                      <p className="text-white/60">No education information</p>
                       <p className="text-white/40 text-sm">
-                        Your quiz history will appear here
+                        Add your educational background
                       </p>
                     </div>
                   )}
+                </div>
+
+                {/* Performance and Activity Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Performance Overview */}
+                  <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                    <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                      <FiBarChart className="text-primary-color" />
+                      Performance Overview
+                    </h3>
+
+                    {quizStats.bestCategory ? (
+                      <div className="space-y-4">
+                        <div className="bg-white/5 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-white/80">Best Category</span>
+                            <Trophy className="w-5 h-5 text-yellow-500" />
+                          </div>
+                          <div className="text-lg font-semibold text-white">
+                            {quizStats.bestCategory.category}
+                          </div>
+                          <div
+                            className={`text-sm ${getPerformanceColor(
+                              quizStats.bestCategory.percentage
+                            )}`}
+                          >
+                            {quizStats.bestCategory.percentage}% (
+                            {quizStats.bestCategory.score}/5)
+                          </div>
+                        </div>
+
+                        <div className="bg-white/5 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-white/80">
+                              Learning Streak
+                            </span>
+                            <Star className="w-5 h-5 text-primary-color" />
+                          </div>
+                          <div className="text-lg font-semibold text-white">
+                            {quizStats.totalQuizzes} Quiz
+                            {quizStats.totalQuizzes !== 1 ? "es" : ""}
+                          </div>
+                          <div className="text-sm text-white/60">
+                            Keep up the great work!
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <BookOpen className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                        <p className="text-white/60">
+                          No quiz data available yet
+                        </p>
+                        <p className="text-white/40 text-sm">
+                          Take your first quiz to see your performance
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recent Activity */}
+                  <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                    <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                      <FiClock className="text-primary-color" />
+                      Recent Activity
+                    </h3>
+
+                    {quizStats.recentActivity.length > 0 ? (
+                      <div className="space-y-3">
+                        {quizStats.recentActivity.map((activity, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="flex items-center justify-between p-3 bg-white/5 rounded-lg"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                  activity.percentage >= 80
+                                    ? "bg-green-500/20"
+                                    : activity.percentage >= 60
+                                    ? "bg-blue-500/20"
+                                    : "bg-yellow-500/20"
+                                }`}
+                              >
+                                {activity.percentage >= 80 ? (
+                                  <Trophy className="w-4 h-4 text-green-500" />
+                                ) : activity.percentage >= 60 ? (
+                                  <Medal className="w-4 h-4 text-blue-500" />
+                                ) : (
+                                  <Star className="w-4 h-4 text-yellow-500" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="text-white font-medium text-sm">
+                                  {activity.category}
+                                </div>
+                                <div className="text-white/60 text-xs">
+                                  {formatDate(activity.completedAt)}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div
+                                className={`font-semibold ${getPerformanceColor(
+                                  activity.percentage
+                                )}`}
+                              >
+                                {activity.percentage}%
+                              </div>
+                              <div className="text-white/60 text-xs">
+                                {activity.score}/5
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Clock className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                        <p className="text-white/60">No recent activity</p>
+                        <p className="text-white/40 text-sm">
+                          Your quiz history will appear here
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             )}
