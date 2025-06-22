@@ -4,7 +4,7 @@ import email from "/signup/email.png";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from "react-hot-toast";
 import "react-toastify/dist/ReactToastify.css";
 import { signIn } from "../../services/api/authService";
 import toast from "react-hot-toast";
@@ -22,10 +22,10 @@ const Form = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Reset errors
     setErrors({});
-    
+
     // Basic validation
     if (!formData.email || !formData.password) {
       setErrors({
@@ -39,19 +39,53 @@ const Form = () => {
     try {
       setLoading(true);
       const response = await signIn(formData, role);
+
+      // Store user info in localStorage
+      localStorage.setItem("userRole", role);
+      localStorage.setItem("userEmail", formData.email);
+
+      // Check verification status
+      if (!response.emailVerified) {
+        // User hasn't verified email yet
+        toast.error("Please verify your email first");
+        navigate("/verify-otp", {
+          state: {
+            userId: response.id,
+            email: formData.email,
+            role: role,
+          },
+        });
+        return;
+      }
+
+      if (response.rejected) {
+        // User has been rejected by admin
+        toast.error("Your account application has been rejected");
+        navigate("/account-rejected");
+        return;
+      }
+
+      if (!response.verified) {
+        // User has verified email but not admin approved
+        toast.error("Your account is pending admin approval");
+        navigate("/pending-approval");
+        return;
+      }
+
+      // User is fully verified and approved
       const dashboardPath = role === "mentor" ? "/mentor/home" : "/mentee/home";
       navigate(dashboardPath);
     } catch (error) {
       console.error("Login Error:", error);
-      
+
       // Handle API error responses
       if (error.message === "Learner Not Found") {
         setErrors({ email: "Email not found" });
         toast.error("Account not found. Please check your email address.");
       } else if (error.message === "Invalid Credentials") {
-        setErrors({ 
+        setErrors({
           email: "Invalid credentials",
-          password: "Invalid credentials"
+          password: "Invalid credentials",
         });
         toast.error("Invalid email or password. Please try again.");
       } else {
@@ -70,9 +104,9 @@ const Form = () => {
     }));
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ""
+        [name]: "",
       }));
     }
   };
@@ -93,7 +127,9 @@ const Form = () => {
               type="button"
               onClick={() => setRole("mentee")}
               className={`flex-1 relative py-3 px-6 rounded-lg transition-all duration-300 ${
-                role === "mentee" ? "text-white" : "text-gray-400 hover:text-white"
+                role === "mentee"
+                  ? "text-white"
+                  : "text-gray-400 hover:text-white"
               }`}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -111,7 +147,9 @@ const Form = () => {
               type="button"
               onClick={() => setRole("mentor")}
               className={`flex-1 relative py-3 px-6 rounded-lg transition-all duration-300 ${
-                role === "mentor" ? "text-white" : "text-gray-400 hover:text-white"
+                role === "mentor"
+                  ? "text-white"
+                  : "text-gray-400 hover:text-white"
               }`}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -144,9 +182,9 @@ const Form = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 className={`w-full px-5 py-4 bg-white/[0.03] border ${
-                  errors.email 
-                    ? 'border-red-500 focus:border-red-500' 
-                    : 'border-white/10 focus:border-primary-color'
+                  errors.email
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-white/10 focus:border-primary-color"
                 } rounded-lg focus:outline-none text-white placeholder-gray-400 transition-all`}
                 placeholder="Email"
                 required
@@ -176,9 +214,9 @@ const Form = () => {
                 value={formData.password}
                 onChange={handleInputChange}
                 className={`w-full px-5 py-4 bg-white/[0.03] border ${
-                  errors.password 
-                    ? 'border-red-500 focus:border-red-500' 
-                    : 'border-white/10 focus:border-primary-color'
+                  errors.password
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-white/10 focus:border-primary-color"
                 } rounded-lg focus:outline-none text-white placeholder-gray-400 transition-all`}
                 placeholder="Password"
                 required
@@ -218,7 +256,9 @@ const Form = () => {
               {loading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span className="ml-2 text-white font-medium">Signing in...</span>
+                  <span className="ml-2 text-white font-medium">
+                    Signing in...
+                  </span>
                 </div>
               ) : (
                 <span className="text-white font-medium">Sign In</span>

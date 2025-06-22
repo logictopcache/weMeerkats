@@ -39,7 +39,7 @@ mentorRouter.get("/mentor/:id", async (req, res) => {
 
 mentorRouter.get("/mentors", async (req, res) => {
   try {
-    const mentors = await Mentor.find();
+    const mentors = await Mentor.find({ verified: true });
     res.status(200).json(mentors);
   } catch (error) {
     console.error("Error fetching mentors:", error);
@@ -253,7 +253,7 @@ mentorRouter.post("/mentor/verifyOTP", async (req, res) => {
     const otpString = otp.toString();
 
     if (otpString === otpRecord.otp) {
-      await Mentor.updateOne({ _id: userId }, { verified: true });
+      await Mentor.updateOne({ _id: userId }, { emailVerified: true });
       await MentorOTPVerification.deleteOne({ userId: userId });
       return res.status(200).json({ message: "OTP verified successfully" });
     }
@@ -264,7 +264,7 @@ mentorRouter.post("/mentor/verifyOTP", async (req, res) => {
       return res.status(400).json({ error: "Invalid OTP" });
     }
 
-    await Mentor.updateOne({ _id: userId }, { verified: true });
+    await Mentor.updateOne({ _id: userId }, { emailVerified: true });
     await MentorOTPVerification.deleteOne({ userId: userId });
 
     return res.status(200).json({ message: "OTP verified successfully" });
@@ -444,7 +444,10 @@ mentorRouter.post(
         id: mentorLogin["_id"],
         email: mentorLogin["email"],
         token: token,
-        verified: mentorLogin.verified
+        emailVerified: mentorLogin.emailVerified,
+        verified: mentorLogin.verified,
+        rejected: mentorLogin.rejected,
+        rejectionReason: mentorLogin.rejectionReason,
       });
     } catch (error) {
       console.error(error);

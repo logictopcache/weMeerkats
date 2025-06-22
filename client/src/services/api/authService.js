@@ -128,6 +128,12 @@ export const signIn = async (credentials, role) => {
 
     localStorage.setItem("userRole", role);
     localStorage.setItem("userId", data.id);
+    localStorage.setItem("emailVerified", data.emailVerified);
+    localStorage.setItem("verified", data.verified);
+    localStorage.setItem("rejected", data.rejected || false);
+    if (data.rejectionReason) {
+      localStorage.setItem("rejectionReason", data.rejectionReason);
+    }
     return data;
   } catch (error) {
     // If it's already an Error object with our custom message, throw it as is

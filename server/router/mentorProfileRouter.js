@@ -327,9 +327,9 @@ router.get("/mentor-profiles", async (req, res) => {
     // Get all mentor IDs from profiles
     const mentorIds = mentorProfiles.map((profile) => profile.mentorId);
 
-    // Fetch all mentors' basic info and verification status
+    // Fetch all mentors' basic info and verification status (only verified mentors)
     const mentors = await Mentor.find(
-      { _id: { $in: mentorIds } },
+      { _id: { $in: mentorIds }, verified: true },
       { _id: 1, firstName: 1, lastName: 1, email: 1, verified: 1 }
     );
 
@@ -444,7 +444,8 @@ router.get("/mentors/search", async (req, res) => {
 
     const searchRegex = new RegExp(searchKey, "i");
 
-    const mentors = await MentorProfile.find({
+    // First get mentor profiles matching search criteria
+    const mentorProfiles = await MentorProfile.find({
       $or: [
         { fullName: searchRegex },
         { skills: { $in: [searchRegex] } },
@@ -457,6 +458,18 @@ router.get("/mentors/search", async (req, res) => {
         { certification: searchRegex },
       ],
     });
+
+    // Get mentor IDs and filter by verified mentors only
+    const mentorIds = mentorProfiles.map((profile) => profile.mentorId);
+    const verifiedMentors = await Mentor.find({
+      _id: { $in: mentorIds },
+      verified: true,
+    }).select("_id");
+
+    const verifiedMentorIds = verifiedMentors.map((m) => m._id.toString());
+    const mentors = mentorProfiles.filter((profile) =>
+      verifiedMentorIds.includes(profile.mentorId.toString())
+    );
 
     if (mentors.length === 0) {
       return res.status(200).json({
@@ -778,7 +791,6 @@ router.get("/mentor/:mentorId/available-slots/:skill", async (req, res) => {
       },
       status: { $nin: ["cancelled", "rejected"] },
     });
-
 
     // Filter out slots that already have appointments
     const availableSlotsWithoutBookings = availableSlots.filter((slot) => {

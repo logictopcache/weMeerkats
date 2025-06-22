@@ -33,6 +33,10 @@ import SkillDetails from "./pages/mentee/progress/SkillDetails";
 import MenteeProfilePage from "./pages/mentee/profile/MenteeProfile";
 import MentorProfilePage from "./pages/mentor/profile/MentorProfile";
 import { Toaster } from "react-hot-toast";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import PendingApproval from "./pages/PendingApproval";
+import AccountRejected from "./pages/AccountRejected";
 
 function App() {
   const layoutRoutes = [
@@ -199,6 +203,10 @@ function App() {
     { path: "/terms", element: <Terms /> },
     { path: "/privacy", element: <Privacy /> },
     { path: "/cookies", element: <Cookies /> },
+    { path: "/admin/login", element: <AdminLogin /> },
+    { path: "/admin/dashboard", element: <AdminDashboard /> },
+    { path: "/pending-approval", element: <PendingApproval /> },
+    { path: "/account-rejected", element: <AccountRejected /> },
     {
       path: "/home",
       element: (

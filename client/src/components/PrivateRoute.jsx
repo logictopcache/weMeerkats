@@ -3,7 +3,27 @@ import PropTypes from "prop-types";
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem("authToken");
-  return token ? children : <Navigate to="/signin" />;
+  const emailVerified = localStorage.getItem("emailVerified") === "true";
+  const verified = localStorage.getItem("verified") === "true";
+  const rejected = localStorage.getItem("rejected") === "true";
+
+  if (!token) {
+    return <Navigate to="/signin" />;
+  }
+
+  if (!emailVerified) {
+    return <Navigate to="/verify-otp" />;
+  }
+
+  if (rejected) {
+    return <Navigate to="/account-rejected" />;
+  }
+
+  if (!verified) {
+    return <Navigate to="/pending-approval" />;
+  }
+
+  return children;
 };
 
 PrivateRoute.propTypes = {

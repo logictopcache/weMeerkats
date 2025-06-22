@@ -39,7 +39,7 @@ learnerRouter.get("/learner/:id", async (req, res) => {
 
 learnerRouter.get("/learners", async (req, res) => {
   try {
-    const learner = await Learner.find();
+    const learner = await Learner.find({ verified: true });
     res.status(200).json(learner);
   } catch (error) {
     console.error("Error fetching learner:", error);
@@ -274,7 +274,10 @@ learnerRouter.post(
           id: learnerLogin["_id"],
           email: learnerLogin["email"],
           token: token,
-          verified: learnerLogin.verified
+          emailVerified: learnerLogin.emailVerified,
+          verified: learnerLogin.verified,
+          rejected: learnerLogin.rejected,
+          rejectionReason: learnerLogin.rejectionReason,
         });
       } catch (error) {
         console.error(error);
@@ -308,7 +311,7 @@ learnerRouter.post("/learner/verifyOTP", async (req, res) => {
     const otpString = otp.toString();
 
     if (otpString === otpRecord.otp) {
-      await Learner.updateOne({ _id: userId }, { verified: true });
+      await Learner.updateOne({ _id: userId }, { emailVerified: true });
       await LearnerOTPVerification.deleteOne({ userId: userId });
       return res.status(200).json({ message: "OTP verified successfully" });
     }
@@ -319,7 +322,7 @@ learnerRouter.post("/learner/verifyOTP", async (req, res) => {
       return res.status(400).json({ error: "Invalid OTP" });
     }
 
-    await Learner.updateOne({ _id: userId }, { verified: true });
+    await Learner.updateOne({ _id: userId }, { emailVerified: true });
     await LearnerOTPVerification.deleteOne({ userId: userId });
 
     return res.status(200).json({ message: "OTP verified successfully" });

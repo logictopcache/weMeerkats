@@ -20,7 +20,23 @@ const learnerSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  verified: Boolean,
+  emailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verified: {
+    type: Boolean,
+    default: false,
+  },
+  rejected: {
+    type: Boolean,
+    default: false,
+  },
+  rejectionReason: String,
+  approvedAt: Date,
+  rejectedAt: Date,
+  approvedBy: String,
+  rejectedBy: String,
   tokens: [
     {
       token: {

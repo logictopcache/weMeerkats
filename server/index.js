@@ -227,6 +227,8 @@ const progressRouter = require("./router/progressRouter");
 const notificationRouter = require("./router/routes/notificationRoutes");
 const aiConversationRouter = require("./router/aiConversationRouter");
 const quizResultRouter = require("./router/quizResultRouter");
+const { adminRouter } = require("./router/adminAuth");
+const adminDashboardRouter = require("./router/adminRoutes");
 const authMiddleware = require("./util/socketIo");
 const { console } = require("inspector");
 
@@ -238,6 +240,8 @@ app.use(progressRouter);
 app.use("/api/notifications", notificationRouter);
 app.use("/api/ai", aiConversationRouter);
 app.use(quizResultRouter);
+app.use("/api", adminRouter);
+app.use("/api", adminDashboardRouter);
 
 const io = new Server(server, {
   cors: {
