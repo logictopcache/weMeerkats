@@ -630,6 +630,7 @@ router.patch(
         {
           $set: {
             status: "rescheduled",
+            appointmentDateTime: new Date(proposedDateTime),
             proposedDateTime: new Date(proposedDateTime),
           },
           $push: {
