@@ -2,13 +2,25 @@ import { useState, useEffect } from "react";
 import Navigation from "../../../components/mentee/home/Navigation";
 import MenteeHeader from "../../../components/mentee/home/Header";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiSearch, FiCalendar, FiClock, FiX, FiAlertCircle } from "react-icons/fi";
+import {
+  FiSearch,
+  FiCalendar,
+  FiClock,
+  FiX,
+  FiAlertCircle,
+} from "react-icons/fi";
+import { toast } from "react-hot-toast";
 
 const AppointmentCalendar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [cancelModal, setCancelModal] = useState({
+    show: false,
+    appointmentId: null,
+    appointmentDetails: null,
+  });
 
   useEffect(() => {
     fetchAppointments();
@@ -72,10 +84,17 @@ const AppointmentCalendar = () => {
     }
   };
 
-  const handleCancelAppointment = async (appointmentId) => {
-    if (!window.confirm("Are you sure you want to cancel this appointment?")) {
-      return;
-    }
+  const handleCancelAppointment = (appointmentId) => {
+    const appointment = appointments.find((app) => app.id === appointmentId);
+    setCancelModal({
+      show: true,
+      appointmentId,
+      appointmentDetails: appointment,
+    });
+  };
+
+  const confirmCancelAppointment = async () => {
+    const { appointmentId } = cancelModal;
 
     try {
       const token = localStorage.getItem("authToken");
@@ -99,11 +118,18 @@ const AppointmentCalendar = () => {
         throw new Error(data.error || "Failed to cancel appointment");
       }
 
+      setCancelModal({
+        show: false,
+        appointmentId: null,
+        appointmentDetails: null,
+      });
       fetchAppointments();
-      alert("Appointment cancelled successfully");
+
+      toast.success("Appointment cancelled successfully");
     } catch (error) {
       console.error("Error cancelling appointment:", error);
-      alert(error.message || "Failed to cancel appointment");
+
+      toast.error(error.message || "Failed to cancel appointment");
     }
   };
 
@@ -120,14 +146,14 @@ const AppointmentCalendar = () => {
 
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
-      case 'scheduled':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case "scheduled":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "cancelled":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "completed":
+        return "bg-blue-100 text-blue-800 border-blue-200";
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
@@ -172,7 +198,10 @@ const AppointmentCalendar = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full md:w-64 pl-10 pr-4 py-2 bg-white/[0.03] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-primary-color/50 focus:ring-1 focus:ring-primary-color/50"
                   />
-                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40" size={18} />
+                  <FiSearch
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40"
+                    size={18}
+                  />
                 </div>
               </div>
             </div>
@@ -212,55 +241,76 @@ const AppointmentCalendar = () => {
                   </thead>
                   <tbody className="divide-y divide-white/10">
                     <AnimatePresence>
-                      {filterAppointments(appointments).map((appointment, index) => (
-                        <motion.tr
-                          key={appointment.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.3, delay: index * 0.1 }}
-                          className="hover:bg-white/[0.02] transition-colors"
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-white">{appointment.mentorName}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2 text-white/80">
-                              <FiCalendar size={16} className="text-primary-color" />
-                              {appointment.day}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2 text-white/80">
-                              <FiClock size={16} className="text-primary-color" />
-                              {appointment.time}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
-                              {appointment.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {appointment.status.toLowerCase() !== 'cancelled' && 
-                             appointment.status.toLowerCase() !== 'completed' && (
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleCancelAppointment(appointment.id)}
-                                className="flex items-center gap-2 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
+                      {filterAppointments(appointments).map(
+                        (appointment, index) => (
+                          <motion.tr
+                            key={appointment.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                            className="hover:bg-white/[0.02] transition-colors"
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-white">
+                                {appointment.mentorName}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center gap-2 text-white/80">
+                                <FiCalendar
+                                  size={16}
+                                  className="text-primary-color"
+                                />
+                                {appointment.day}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center gap-2 text-white/80">
+                                <FiClock
+                                  size={16}
+                                  className="text-primary-color"
+                                />
+                                {appointment.time}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                                  appointment.status
+                                )}`}
                               >
-                                <FiX size={16} />
-                                <span>Cancel</span>
-                              </motion.button>
-                            )}
-                          </td>
-                        </motion.tr>
-                      ))}
+                                {appointment.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {appointment.status.toLowerCase() !==
+                                "cancelled" &&
+                                appointment.status.toLowerCase() !==
+                                  "completed" && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() =>
+                                      handleCancelAppointment(appointment.id)
+                                    }
+                                    className="flex items-center gap-2 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
+                                  >
+                                    <FiX size={16} />
+                                    <span>Cancel</span>
+                                  </motion.button>
+                                )}
+                            </td>
+                          </motion.tr>
+                        )
+                      )}
                     </AnimatePresence>
                     {filterAppointments(appointments).length === 0 && (
                       <tr>
-                        <td colSpan="5" className="px-6 py-8 text-center text-white/60">
+                        <td
+                          colSpan="5"
+                          className="px-6 py-8 text-center text-white/60"
+                        >
                           No appointments found
                         </td>
                       </tr>
@@ -272,6 +322,86 @@ const AppointmentCalendar = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      <AnimatePresence>
+        {cancelModal.show && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.3 }}
+              className="bg-[#0c1631] border border-white/10 rounded-2xl p-6 w-full max-w-md mx-auto shadow-2xl"
+            >
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-500/10 mb-4">
+                  <FiAlertCircle className="h-6 w-6 text-red-500" />
+                </div>
+
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  Cancel Appointment
+                </h3>
+
+                <p className="text-white/70 mb-6">
+                  Are you sure you want to cancel your appointment with{" "}
+                  <span className="font-medium text-white">
+                    {cancelModal.appointmentDetails?.mentorName}
+                  </span>
+                  ?
+                </p>
+
+                {cancelModal.appointmentDetails && (
+                  <div className="bg-white/5 rounded-lg p-4 mb-6 text-left">
+                    <div className="flex items-center gap-2 text-white/80 mb-2">
+                      <FiCalendar size={16} className="text-primary-color" />
+                      <span className="text-sm">
+                        {cancelModal.appointmentDetails.day}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-white/80">
+                      <FiClock size={16} className="text-primary-color" />
+                      <span className="text-sm">
+                        {cancelModal.appointmentDetails.time}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-xs text-white/50 mb-6">
+                  This action cannot be undone. You'll need to book a new
+                  appointment if you change your mind.
+                </p>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() =>
+                    setCancelModal({
+                      show: false,
+                      appointmentId: null,
+                      appointmentDetails: null,
+                    })
+                  }
+                  className="flex-1 px-4 py-2 bg-white/5 text-white/80 rounded-lg hover:bg-white/10 transition-all duration-300 font-medium border border-white/10"
+                >
+                  Keep Appointment
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={confirmCancelAppointment}
+                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all duration-300 font-medium"
+                >
+                  Yes, Cancel
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
