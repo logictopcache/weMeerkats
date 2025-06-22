@@ -257,31 +257,6 @@ const MenteeProfile = () => {
                   )}
                 </div>
               </div>
-
-              {/* Recommendation Section */}
-              <div className="bg-[#0c1631] backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                <h3 className="text-xl font-semibold text-white mb-4">
-                  Give Recommendation
-                </h3>
-                <textarea
-                  value={recommendation}
-                  onChange={(e) => setRecommendation(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl p-4 text-white placeholder-white/40 focus:outline-none focus:border-primary-color/50 min-h-[120px] resize-none"
-                  placeholder="Add your recommendation here to mentee regarding skill learning..."
-                />
-                <div className="flex justify-end mt-4">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleSendRecommendation}
-                    disabled={!recommendation.trim()}
-                    className="px-6 py-2.5 bg-gradient-to-r from-primary-color to-blue-500 text-white rounded-xl flex items-center gap-2 hover:opacity-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <FiSend className="w-4 h-4" />
-                    <span>Send Recommendation</span>
-                  </motion.button>
-                </div>
-              </div>
             </div>
           </div>
         </motion.div>
