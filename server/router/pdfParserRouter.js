@@ -4,6 +4,35 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const pdf = require("pdf-parse");
+const jwt = require("jsonwebtoken"); // Add JWT for token verification
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Middleware to authenticate and extract user info from bearer token
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+
+  if (!token) {
+    return res.status(401).json({
+      error: "Access token is required",
+    });
+  }
+
+  try {
+    // Verify the JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // This should contain user info including profileType
+    next();
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return res.status(403).json({
+      error: "Invalid or expired token",
+    });
+  }
+};
 
 // Storage configuration for resume uploads
 const storage = multer.diskStorage({
@@ -18,8 +47,10 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
-    // Generate unique filename with timestamp
-    const uniqueName = `${Date.now()}-${file.originalname}`;
+    // Generate unique filename with timestamp and user ID
+    const uniqueName = `${req.user?.id || "unknown"}-${Date.now()}-${
+      file.originalname
+    }`;
     cb(null, uniqueName);
   },
 });
@@ -43,7 +74,7 @@ const uploadResume = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 1024 * 1024 * 5, // 5 MB limit for PDF files
+    fileSize: 1024 * 1024 * 5, // 5MB limit for PDF files
   },
 });
 
@@ -59,9 +90,107 @@ const parsePDF = async (filePath) => {
   }
 };
 
-// Route to handle resume upload
+// Helper function to analyze resume with Gemini AI based on known profile type
+const analyzeResumeWithGemini = async (resumeText, profileType) => {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    let prompt;
+
+    if (profileType === "MENTOR") {
+      prompt = `
+      Extract information from the following resume text for a MENTOR profile in JSON format.
+
+      MENTOR Profile Keys to extract:
+      - fullName: string
+      - education: array of objects with {degree, universityName, location, duration, description}
+      - skills: array of strings
+      - experience: array of objects with {title, companyName, location, duration, description}
+      - certifications: array of strings
+      - bio: string (generate a professional bio based on experience)
+      - designation: string (current or most recent job title)
+
+      Resume Text:
+      ${resumeText}
+
+      Return only valid JSON with the extracted data, no additional text or formatting.
+      `;
+    } else {
+      prompt = `
+      Extract information from the following resume text for a LEARNER profile in JSON format.
+
+      LEARNER Profile Keys to extract:
+      - fullName: string
+      - email: string
+      - phone: string
+      - education: array of objects with {degree, universityName, location, duration}
+      - workExperiences: array of objects with {title, companyName, location, duration}
+      - certification: array of strings
+      - expertise: array of strings
+      - skills: array of strings
+      - projects: array of objects with {name, description, technologies}
+
+      Resume Text:
+      ${resumeText}
+
+      Return only valid JSON with the extracted data, no additional text or formatting.
+      `;
+    }
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    // Clean up the response to ensure it's valid JSON
+    const cleanedText = text.replace(/```json\n?|\n?```/g, "").trim();
+
+    try {
+      return JSON.parse(cleanedText);
+    } catch (parseError) {
+      console.error("Error parsing Gemini response as JSON:", parseError);
+      console.log("Raw Gemini response:", text);
+      throw new Error("Failed to parse AI response as JSON");
+    }
+  } catch (error) {
+    console.error("Error analyzing resume with Gemini:", error);
+    throw new Error("Failed to analyze resume with AI");
+  }
+};
+
+// Helper function to validate extracted data structure
+const validateExtractedData = (profileType, data) => {
+  const errors = [];
+
+  if (profileType === "MENTOR") {
+    if (!data.fullName) errors.push("fullName is required for mentor");
+    if (!Array.isArray(data.education))
+      errors.push("education must be an array for mentor");
+    if (!Array.isArray(data.skills))
+      errors.push("skills must be an array for mentor");
+  } else if (profileType === "LEARNER") {
+    if (!data.fullName) errors.push("fullName is required for learner");
+    if (!Array.isArray(data.education))
+      errors.push("education must be an array for learner");
+    if (!Array.isArray(data.skills))
+      errors.push("skills must be an array for learner");
+    if (data.workExperiences && !Array.isArray(data.workExperiences)) {
+      errors.push("workExperiences must be an array for learner");
+    }
+    if (data.certification && !Array.isArray(data.certification)) {
+      errors.push("certification must be an array for learner");
+    }
+    if (data.expertise && !Array.isArray(data.expertise)) {
+      errors.push("expertise must be an array for learner");
+    }
+  }
+
+  return errors;
+};
+
+// Route to handle resume upload with AI analysis (now requires authentication)
 router.post(
   "/upload-resume",
+  authenticateToken,
   uploadResume.single("resume"),
   async (req, res) => {
     try {
@@ -72,12 +201,25 @@ router.post(
         });
       }
 
+      // Get user info from token
+      const { profileType, id: userId, name: userName } = req.user;
+
+      // Validate profile type
+      if (!profileType || !["MENTOR", "LEARNER"].includes(profileType)) {
+        return res.status(400).json({
+          error: "Invalid profile type in token. Must be MENTOR or LEARNER.",
+        });
+      }
+
       // Get the uploaded file path
       const filePath = req.file.path;
       const fileName = req.file.filename;
       const originalName = req.file.originalname;
 
       console.log("=== Resume Upload Details ===");
+      console.log("User ID:", userId);
+      console.log("User Name:", userName);
+      console.log("Profile Type:", profileType);
       console.log("Original filename:", originalName);
       console.log("Saved filename:", fileName);
       console.log("File path:", filePath);
@@ -87,30 +229,59 @@ router.post(
       console.log("\n=== Parsing PDF Content ===");
       const resumeText = await parsePDF(filePath);
 
-      // Display extracted text on console
       console.log("Extracted Resume Text:");
       console.log("=".repeat(50));
       console.log(resumeText);
       console.log("=".repeat(50));
 
-      // You can also save the extracted text to database or perform further processing here
-      // Example: Save to database, analyze skills, extract contact info, etc.
+      // Analyze resume with Gemini AI using known profile type
+      console.log(
+        `\n=== Analyzing Resume with Gemini AI for ${profileType} ===`
+      );
+      const extractedData = await analyzeResumeWithGemini(
+        resumeText,
+        profileType
+      );
 
-      // Send success response
+      console.log("AI Extraction Result:");
+      console.log("Extracted Data:", JSON.stringify(extractedData, null, 2));
+
+      // Validate the extracted data structure
+      const validationErrors = validateExtractedData(
+        profileType,
+        extractedData
+      );
+
+      if (validationErrors.length > 0) {
+        console.warn("Validation warnings:", validationErrors);
+      }
+
+      // Send success response with AI analysis
       res.status(200).json({
-        message: "Resume uploaded and parsed successfully",
+        message: "Resume uploaded, parsed, and analyzed successfully",
+        user: {
+          id: userId,
+          name: userName,
+          profileType: profileType,
+        },
         file: {
           originalName: originalName,
           fileName: fileName,
           filePath: filePath,
           size: req.file.size,
         },
-        extractedText: resumeText, // Optional: include in response
+        analysis: {
+          profileType: profileType,
+          extractedData: extractedData,
+          validationErrors:
+            validationErrors.length > 0 ? validationErrors : null,
+        },
+        rawText: resumeText, // Optional: include raw text
       });
     } catch (error) {
-      console.error("Resume upload error:", error);
+      console.error("Resume processing error:", error);
 
-      // Clean up uploaded file if parsing failed
+      // Clean up uploaded file if processing failed
       if (req.file && req.file.path) {
         try {
           fs.unlinkSync(req.file.path);
@@ -128,9 +299,67 @@ router.post(
   }
 );
 
-// Route to get list of uploaded resumes
-router.get("/resumes", async (req, res) => {
+// Route to re-analyze a specific resume by filename (requires authentication)
+router.get("/analyze-resume/:filename", authenticateToken, async (req, res) => {
   try {
+    const { filename } = req.params;
+    const { profileType, id: userId } = req.user;
+
+    // Check if the filename belongs to the authenticated user
+    if (!filename.startsWith(`${userId}-`)) {
+      return res.status(403).json({
+        error: "You can only analyze your own resume files",
+      });
+    }
+
+    const filePath = path.join("uploads/resume", filename);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        error: "Resume file not found",
+      });
+    }
+
+    // Parse the PDF
+    const resumeText = await parsePDF(filePath);
+
+    // Analyze with Gemini AI using known profile type
+    const extractedData = await analyzeResumeWithGemini(
+      resumeText,
+      profileType
+    );
+
+    console.log(
+      `\n=== Re-analyzing Resume: ${filename} for ${profileType} ===`
+    );
+    console.log("Extracted Data:", JSON.stringify(extractedData, null, 2));
+
+    // Validate the extracted data
+    const validationErrors = validateExtractedData(profileType, extractedData);
+
+    res.status(200).json({
+      message: "Resume analyzed successfully",
+      filename: filename,
+      analysis: {
+        profileType: profileType,
+        extractedData: extractedData,
+        validationErrors: validationErrors.length > 0 ? validationErrors : null,
+      },
+    });
+  } catch (error) {
+    console.error("Error analyzing resume:", error);
+    res.status(500).json({
+      error: "Error analyzing resume",
+      details: error.message,
+    });
+  }
+});
+
+// Route to get list of uploaded resumes for authenticated user
+router.get("/resumes", authenticateToken, async (req, res) => {
+  try {
+    const { id: userId } = req.user;
     const resumeDir = "uploads/resume";
 
     if (!fs.existsSync(resumeDir)) {
@@ -141,8 +370,12 @@ router.get("/resumes", async (req, res) => {
     }
 
     const files = fs.readdirSync(resumeDir);
-    const resumeFiles = files
-      .filter((file) => path.extname(file).toLowerCase() === ".pdf")
+    const userResumeFiles = files
+      .filter(
+        (file) =>
+          file.startsWith(`${userId}-`) &&
+          path.extname(file).toLowerCase() === ".pdf"
+      )
       .map((file) => {
         const filePath = path.join(resumeDir, file);
         const stats = fs.statSync(filePath);
@@ -157,8 +390,8 @@ router.get("/resumes", async (req, res) => {
 
     res.status(200).json({
       message: "Resumes retrieved successfully",
-      count: resumeFiles.length,
-      resumes: resumeFiles,
+      count: userResumeFiles.length,
+      resumes: userResumeFiles,
     });
   } catch (error) {
     console.error("Error fetching resumes:", error);
@@ -169,46 +402,19 @@ router.get("/resumes", async (req, res) => {
   }
 });
 
-// Route to re-parse a specific resume by filename
-router.get("/parse-resume/:filename", async (req, res) => {
+// Route to delete a resume (requires authentication and ownership)
+router.delete("/resume/:filename", authenticateToken, async (req, res) => {
   try {
     const { filename } = req.params;
-    const filePath = path.join("uploads/resume", filename);
+    const { id: userId } = req.user;
 
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({
-        error: "Resume file not found",
+    // Check if the filename belongs to the authenticated user
+    if (!filename.startsWith(`${userId}-`)) {
+      return res.status(403).json({
+        error: "You can only delete your own resume files",
       });
     }
 
-    // Parse the PDF
-    const resumeText = await parsePDF(filePath);
-
-    console.log(`\n=== Re-parsing Resume: ${filename} ===`);
-    console.log("Extracted Text:");
-    console.log("=".repeat(50));
-    console.log(resumeText);
-    console.log("=".repeat(50));
-
-    res.status(200).json({
-      message: "Resume parsed successfully",
-      filename: filename,
-      extractedText: resumeText,
-    });
-  } catch (error) {
-    console.error("Error parsing resume:", error);
-    res.status(500).json({
-      error: "Error parsing resume",
-      details: error.message,
-    });
-  }
-});
-
-// Route to delete a resume
-router.delete("/resume/:filename", async (req, res) => {
-  try {
-    const { filename } = req.params;
     const filePath = path.join("uploads/resume", filename);
 
     // Check if file exists
@@ -221,7 +427,7 @@ router.delete("/resume/:filename", async (req, res) => {
     // Delete the file
     fs.unlinkSync(filePath);
 
-    console.log(`Resume deleted: ${filename}`);
+    console.log(`Resume deleted: ${filename} by user: ${userId}`);
 
     res.status(200).json({
       message: "Resume deleted successfully",
@@ -231,6 +437,69 @@ router.delete("/resume/:filename", async (req, res) => {
     console.error("Error deleting resume:", error);
     res.status(500).json({
       error: "Error deleting resume",
+      details: error.message,
+    });
+  }
+});
+
+// Route to get profile suggestions based on analysis (requires authentication)
+router.post("/profile-suggestions", authenticateToken, async (req, res) => {
+  try {
+    const { extractedData } = req.body;
+    const { profileType } = req.user;
+
+    if (!extractedData) {
+      return res.status(400).json({
+        error: "Extracted data is required",
+      });
+    }
+
+    // Create profile suggestions based on the user's profile type
+    let suggestions = {};
+
+    if (profileType === "MENTOR") {
+      suggestions = {
+        profileType: "MENTOR",
+        suggestions: {
+          fullName: extractedData.fullName || "",
+          education: extractedData.education || [],
+          skills: extractedData.skills || [],
+          experience: extractedData.experience || [],
+          certifications: extractedData.certifications || [],
+          bio:
+            extractedData.bio ||
+            `Experienced professional with expertise in ${
+              extractedData.skills?.slice(0, 3).join(", ") ||
+              "various technologies"
+            }`,
+          designation: extractedData.designation || "Senior Professional",
+        },
+      };
+    } else if (profileType === "LEARNER") {
+      suggestions = {
+        profileType: "LEARNER",
+        suggestions: {
+          fullName: extractedData.fullName || "",
+          email: extractedData.email || "",
+          phone: extractedData.phone || "",
+          education: extractedData.education || [],
+          workExperiences: extractedData.workExperiences || [],
+          certification: extractedData.certification || [],
+          expertise: extractedData.expertise || [],
+          skills: extractedData.skills || [],
+          projects: extractedData.projects || [],
+        },
+      };
+    }
+
+    res.status(200).json({
+      message: "Profile suggestions generated successfully",
+      suggestions: suggestions,
+    });
+  } catch (error) {
+    console.error("Error generating profile suggestions:", error);
+    res.status(500).json({
+      error: "Error generating profile suggestions",
       details: error.message,
     });
   }
