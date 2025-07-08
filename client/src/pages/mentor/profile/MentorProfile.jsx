@@ -12,13 +12,14 @@ import {
   FiRefreshCw,
   FiPhone,
   FiBriefcase,
+  FiSettings,
 } from "react-icons/fi";
-import { Trophy, Medal, Star, BookOpen, Brain, Clock } from "lucide-react";
 import Navigation from "../../../components/mentor/home/Navigation";
 import MentorHeader from "../../../components/mentor/home/Header";
 import { fetchUserProfile } from "../../../services/api/profileService";
 import { toast } from "react-hot-toast";
 import ProfileAvatar from "../../../components/ProfileAvatar";
+import CalendarConnection from "../../../components/calendar/CalendarConnection";
 
 const MentorProfile = () => {
   const [userProfile, setUserProfile] = useState(null);
@@ -177,6 +178,22 @@ const MentorProfile = () => {
             >
               Experience
               {activeTab === "experience" && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-color"
+                />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`relative flex-1 px-6 py-3 rounded-lg font-medium transition-colors ${
+                activeTab === "settings"
+                  ? "text-white bg-white/10"
+                  : "text-white/60 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Settings
+              {activeTab === "settings" && (
                 <motion.div
                   layoutId="activeTab"
                   className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-color"
@@ -447,6 +464,102 @@ const MentorProfile = () => {
                       </p>
                     </div>
                   )}
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "settings" && (
+              <motion.div
+                key="settings"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-8"
+              >
+                {/* Calendar Integration Section */}
+                <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                      <FiCalendar className="text-primary-color" />
+                      Calendar Integration
+                    </h3>
+                  </div>
+
+                  <div className="mb-4">
+                    <p className="text-white/80 mb-4">
+                      Connect your Google Calendar to automatically sync
+                      appointment bookings. When mentees book appointments,
+                      they'll be added to your calendar with meeting links.
+                    </p>
+                  </div>
+
+                  <CalendarConnection
+                    onConnectionChange={(connected) => {
+                      if (connected) {
+                        toast.success(
+                          "Calendar connected successfully! Your appointments will now sync automatically."
+                        );
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Profile Settings Section */}
+                <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                  <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                    <FiSettings className="text-primary-color" />
+                    Profile Settings
+                  </h3>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between py-3 border-b border-white/10">
+                      <div>
+                        <h4 className="text-white font-medium">
+                          Profile Visibility
+                        </h4>
+                        <p className="text-white/60 text-sm">
+                          Control who can see your profile
+                        </p>
+                      </div>
+                      <div className="text-green-500 text-sm">
+                        {userProfile?.isVerified
+                          ? "Verified & Public"
+                          : "Pending Verification"}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between py-3 border-b border-white/10">
+                      <div>
+                        <h4 className="text-white font-medium">
+                          Availability Settings
+                        </h4>
+                        <p className="text-white/60 text-sm">
+                          Manage your mentoring schedule
+                        </p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          (window.location.href = "/mentor/availability")
+                        }
+                        className="px-4 py-2 bg-primary-color/10 text-primary-color rounded-lg hover:bg-primary-color/20 transition-colors"
+                      >
+                        Configure
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between py-3">
+                      <div>
+                        <h4 className="text-white font-medium">
+                          Email Notifications
+                        </h4>
+                        <p className="text-white/60 text-sm">
+                          Receive notifications for new bookings
+                        </p>
+                      </div>
+                      <div className="text-green-500 text-sm">Enabled</div>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}

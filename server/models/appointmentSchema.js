@@ -17,15 +17,23 @@ const appointmentSchema = new mongoose.Schema(
     duration: {
       type: Number,
       required: true,
-      default: 60  // Duration in minutes
+      default: 60, // Duration in minutes
     },
     skill: {
       type: String,
-      required: true
+      required: true,
     },
     status: {
       type: String,
-      enum: ["pending", "accepted", "rejected", "rescheduled", "cancelled", "completed", "no-show"],
+      enum: [
+        "pending",
+        "accepted",
+        "rejected",
+        "rescheduled",
+        "cancelled",
+        "completed",
+        "no-show",
+      ],
       default: "pending",
     },
     learnerName: {
@@ -37,18 +45,66 @@ const appointmentSchema = new mongoose.Schema(
     proposedDateTime: {
       type: Date,
     },
-    statusHistory: [{
-      status: String,
-      updatedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true
+    statusHistory: [
+      {
+        status: String,
+        updatedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true,
+        },
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        note: String,
       },
-      updatedAt: {
+    ],
+    // Google Calendar Integration Fields
+    googleCalendar: {
+      eventId: {
+        type: String,
+        default: null,
+      },
+      eventLink: {
+        type: String,
+        default: null,
+      },
+      meetingLink: {
+        type: String,
+        default: null,
+      },
+      calendarSynced: {
+        type: Boolean,
+        default: false,
+      },
+      lastSyncedAt: {
         type: Date,
-        default: Date.now
+        default: null,
       },
-      note: String
-    }]
+      syncError: {
+        type: String,
+        default: null,
+      },
+    },
+    // Email notification tracking
+    emailNotifications: {
+      inviteSent: {
+        type: Boolean,
+        default: false,
+      },
+      reminderSent: {
+        type: Boolean,
+        default: false,
+      },
+      cancellationSent: {
+        type: Boolean,
+        default: false,
+      },
+      lastEmailSentAt: {
+        type: Date,
+        default: null,
+      },
+    },
   },
   {
     timestamps: true,
@@ -57,5 +113,7 @@ const appointmentSchema = new mongoose.Schema(
 
 appointmentSchema.index({ mentorId: 1, appointmentDateTime: 1 });
 appointmentSchema.index({ learnerId: 1, appointmentDateTime: 1 });
+appointmentSchema.index({ "googleCalendar.eventId": 1 });
+appointmentSchema.index({ status: 1, appointmentDateTime: 1 });
 
 module.exports = mongoose.model("Appointment", appointmentSchema);

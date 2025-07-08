@@ -36,7 +36,7 @@ const AppointmentCalendar = () => {
       const learnerid = localStorage.getItem("userId");
 
       const response = await fetch(
-        `http://localhost:5274/learner/appointments/${learnerid}`,
+        `http://localhost:5274/api/appointments/my-appointments`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -50,9 +50,14 @@ const AppointmentCalendar = () => {
         throw new Error(data.error || "Failed to fetch appointments");
       }
 
-      const formattedAppointments = data.map((appointment) => ({
+      // The new API returns appointments in data.appointments array
+      const appointmentsList = data.appointments || [];
+
+      const formattedAppointments = appointmentsList.map((appointment) => ({
         id: appointment._id,
-        mentorName: `${appointment.mentorName}`,
+        mentorName:
+          appointment.mentorName ||
+          `${appointment.mentorId?.firstName} ${appointment.mentorId?.lastName}`,
         day: new Date(appointment.appointmentDateTime).toLocaleDateString(
           "en-US",
           {
@@ -71,6 +76,10 @@ const AppointmentCalendar = () => {
         ),
         status: appointment.status,
         dateTime: new Date(appointment.appointmentDateTime),
+        skill: appointment.skill,
+        duration: appointment.duration,
+        calendarSynced: appointment.googleCalendar?.calendarSynced || false,
+        meetingLink: appointment.googleCalendar?.meetingLink || null,
       }));
 
       // Sort appointments by date
@@ -103,12 +112,16 @@ const AppointmentCalendar = () => {
       }
 
       const response = await fetch(
-        `http://localhost:5274/learner/appointment/${appointmentId}/cancel`,
+        `http://localhost:5274/api/appointments/${appointmentId}/cancel`,
         {
-          method: "PATCH",
+          method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
+          body: JSON.stringify({
+            reason: "Cancelled by mentee",
+          }),
         }
       );
 
@@ -252,8 +265,21 @@ const AppointmentCalendar = () => {
                             className="hover:bg-white/[0.02] transition-colors"
                           >
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-white">
-                                {appointment.mentorName}
+                              <div className="flex items-center gap-2">
+                                <div className="text-white">
+                                  {appointment.mentorName}
+                                </div>
+                                {appointment.calendarSynced && (
+                                  <span
+                                    className="w-2 h-2 bg-green-500 rounded-full"
+                                    title="Calendar synced"
+                                  ></span>
+                                )}
+                                {appointment.meetingLink && (
+                                  <span className="text-xs px-2 py-1 bg-blue-500/10 text-blue-400 rounded border border-blue-500/20">
+                                    Meeting
+                                  </span>
+                                )}
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">

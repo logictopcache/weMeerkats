@@ -232,6 +232,10 @@ const adminDashboardRouter = require("./router/adminRoutes");
 const authMiddleware = require("./util/socketIo");
 const { console } = require("inspector");
 
+// Google Calendar integration
+const googleCalendarAuthRouter = require("./router/googleCalendarAuth");
+const appointmentRouter = require("./router/appointmentRoutes");
+
 app.use(learnerRouter);
 app.use(mentorRouter);
 app.use(mentorProfileRouter);
@@ -241,7 +245,12 @@ app.use("/api/notifications", notificationRouter);
 app.use("/api/ai", aiConversationRouter);
 app.use(quizResultRouter);
 app.use("/api", adminRouter);
-app.use("/api", adminDashboardRouter);
+app.use("/api/admin", adminDashboardRouter);
+
+// Google Calendar routes
+app.use("/api/calendar", googleCalendarAuthRouter);
+// Appointment routes
+app.use("/api/appointments", appointmentRouter);
 
 const io = new Server(server, {
   cors: {

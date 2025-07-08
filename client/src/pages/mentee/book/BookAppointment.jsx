@@ -150,7 +150,7 @@ const BookAppointment = () => {
       const loadingToastId = toast.loading("Sending booking request...");
 
       const response = await fetch(
-        "http://localhost:5274/learner/appointment",
+        "http://localhost:5274/api/appointments/book",
         {
           method: "POST",
           headers: {
@@ -198,16 +198,25 @@ const BookAppointment = () => {
       }
 
       // Success message with appointment details
+      const successMessage = data.calendarIntegrated
+        ? "Appointment booked successfully! 📅 Added to mentor's calendar with meeting link."
+        : "Appointment request sent successfully! The mentor will be notified.";
+
       toast.success(
         <div>
-          <p>Appointment request sent successfully!</p>
+          <p>{successMessage}</p>
           <p className="text-sm mt-1">
             {`With ${mentorData.name} for ${selectedSkill}`}
             <br />
             {`${appointmentDateTime.toLocaleDateString()} at ${selectedTime}`}
           </p>
+          {data.calendar?.meetingLink && (
+            <p className="text-xs mt-2 text-green-600">
+              Meeting link will be available after mentor accepts
+            </p>
+          )}
         </div>,
-        { duration: 5000 }
+        { duration: 6000 }
       );
 
       // Navigate after a short delay to allow user to see the success message
