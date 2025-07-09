@@ -114,6 +114,150 @@ class EmailService {
     }
   }
 
+  // Send appointment booking request notification (when mentee books, before mentor accepts)
+  async sendAppointmentBookingRequest(appointmentData) {
+    try {
+      const {
+        mentorEmail,
+        menteeEmail,
+        mentorName,
+        menteeName,
+        skill,
+        appointmentDateTime,
+        duration,
+        appointmentId,
+      } = appointmentData;
+
+      // Format date and time
+      const appointmentDate = new Date(appointmentDateTime);
+      const formattedDate = appointmentDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      const formattedTime = appointmentDate.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      // Email templates for booking request
+      const mentorRequestEmailHtml = this.generateMentorBookingRequestEmail({
+        mentorName,
+        menteeName,
+        skill,
+        formattedDate,
+        formattedTime,
+        duration,
+        appointmentId,
+      });
+
+      const menteeRequestEmailHtml = this.generateMenteeBookingRequestEmail({
+        mentorName,
+        menteeName,
+        skill,
+        formattedDate,
+        formattedTime,
+        duration,
+        appointmentId,
+      });
+
+      // Send email to mentor about the booking request
+      await this.transporter.sendMail({
+        from: `"WeMeerkats Platform" <${process.env.AUTHENTICATION_EMAIL}>`,
+        to: mentorEmail,
+        subject: `New Mentorship Request - ${skill} with ${menteeName}`,
+        html: mentorRequestEmailHtml,
+      });
+
+      // Send email to mentee confirming their request was sent
+      await this.transporter.sendMail({
+        from: `"WeMeerkats Platform" <${process.env.AUTHENTICATION_EMAIL}>`,
+        to: menteeEmail,
+        subject: `Mentorship Request Sent - ${skill} with ${mentorName}`,
+        html: menteeRequestEmailHtml,
+      });
+
+      return {
+        success: true,
+        message: "Booking request emails sent successfully",
+      };
+    } catch (error) {
+      console.error("Error sending booking request emails:", error);
+      throw new Error(
+        `Failed to send booking request emails: ${error.message}`
+      );
+    }
+  }
+
+  // Send appointment rejection email
+  async sendAppointmentRejection(appointmentData) {
+    try {
+      const {
+        mentorEmail,
+        menteeEmail,
+        mentorName,
+        menteeName,
+        skill,
+        appointmentDateTime,
+        duration,
+        appointmentId,
+        rejectionReason,
+        rejectedBy,
+      } = appointmentData;
+
+      const appointmentDate = new Date(appointmentDateTime);
+      const formattedDate = appointmentDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      const formattedTime = appointmentDate.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      const emailHtml = this.generateRejectionEmail({
+        mentorName,
+        menteeName,
+        skill,
+        formattedDate,
+        formattedTime,
+        duration,
+        appointmentId,
+        rejectionReason,
+        rejectedBy,
+      });
+
+      // Send to both mentor and mentee
+      await Promise.all([
+        this.transporter.sendMail({
+          from: `"WeMeerkats Platform" <${process.env.AUTHENTICATION_EMAIL}>`,
+          to: mentorEmail,
+          subject: `Mentorship Request Rejected - ${skill}`,
+          html: emailHtml,
+        }),
+        this.transporter.sendMail({
+          from: `"WeMeerkats Platform" <${process.env.AUTHENTICATION_EMAIL}>`,
+          to: menteeEmail,
+          subject: `Mentorship Request Rejected - ${skill}`,
+          html: emailHtml,
+        }),
+      ]);
+
+      return {
+        success: true,
+        message: "Rejection emails sent successfully",
+      };
+    } catch (error) {
+      console.error("Error sending rejection emails:", error);
+      throw new Error(`Failed to send rejection emails: ${error.message}`);
+    }
+  }
+
   // Send appointment cancellation email
   async sendAppointmentCancellation(appointmentData) {
     try {
@@ -424,6 +568,189 @@ class EmailService {
             </ul>
 
             <p><strong>Note:</strong> This appointment has been automatically added to your calendar. You'll receive reminder emails 24 hours and 1 hour before the session.</p>
+
+            <div class="footer">
+              <p>Best regards,<br>The WeMeerkats Team</p>
+              <p><em>Empowering growth through mentorship</em></p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  // Generate booking request email HTML for mentor
+  generateMentorBookingRequestEmail(data) {
+    const {
+      mentorName,
+      menteeName,
+      skill,
+      formattedDate,
+      formattedTime,
+      duration,
+      appointmentId,
+    } = data;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #ffa726, #ff9800); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+          .appointment-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffa726; }
+          .button { display: inline-block; background: #59BBA9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>💌 New Mentorship Request</h1>
+          </div>
+          <div class="content">
+            <h2>Hello ${mentorName}!</h2>
+            <p>You have received a new mentorship request for <strong>${skill}</strong> from <strong>${menteeName}</strong>.</p>
+            
+            <div class="appointment-details">
+              <h3>📅 Request Details</h3>
+              <p><strong>Skill Focus:</strong> ${skill}</p>
+              <p><strong>Date:</strong> ${formattedDate}</p>
+              <p><strong>Time:</strong> ${formattedTime}</p>
+              <p><strong>Duration:</strong> ${duration} minutes</p>
+              <p><strong>Mentee:</strong> ${menteeName}</p>
+              <p><strong>Session ID:</strong> #${appointmentId}</p>
+            </div>
+
+            <p>Please review the request and confirm or reject it as soon as possible.</p>
+
+            <div class="footer">
+              <p>Best regards,<br>The WeMeerkats Team</p>
+              <p><em>Empowering growth through mentorship</em></p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  // Generate booking request email HTML for mentee
+  generateMenteeBookingRequestEmail(data) {
+    const {
+      mentorName,
+      menteeName,
+      skill,
+      formattedDate,
+      formattedTime,
+      duration,
+      appointmentId,
+    } = data;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #59BBA9, #4A9B8E); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+          .appointment-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #59BBA9; }
+          .button { display: inline-block; background: #59BBA9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px; }
+          .button:hover { background: #4A9B8E; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>💌 Your Mentorship Request is Sent!</h1>
+          </div>
+          <div class="content">
+            <h2>Hello ${menteeName}!</h2>
+            <p>Your mentorship request for <strong>${skill}</strong> with <strong>${mentorName}</strong> has been sent.</p>
+            
+            <div class="appointment-details">
+              <h3>📅 Request Details</h3>
+              <p><strong>Skill Focus:</strong> ${skill}</p>
+              <p><strong>Date:</strong> ${formattedDate}</p>
+              <p><strong>Time:</strong> ${formattedTime}</p>
+              <p><strong>Duration:</strong> ${duration} minutes</p>
+              <p><strong>Mentor:</strong> ${mentorName}</p>
+              <p><strong>Session ID:</strong> #${appointmentId}</p>
+            </div>
+
+            <p>Your request has been forwarded to the mentor. They will review it and get back to you shortly.</p>
+
+            <div class="footer">
+              <p>Best regards,<br>The WeMeerkats Team</p>
+              <p><em>Empowering growth through mentorship</em></p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  // Generate rejection email HTML
+  generateRejectionEmail(data) {
+    const {
+      mentorName,
+      menteeName,
+      skill,
+      formattedDate,
+      formattedTime,
+      appointmentId,
+      rejectionReason,
+      rejectedBy,
+    } = data;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #ff6b6b, #ee5a52); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+          .appointment-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff6b6b; }
+          .button { display: inline-block; background: #59BBA9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>❌ Request Rejected</h1>
+          </div>
+          <div class="content">
+            <h2>Mentorship Request Rejection Notice</h2>
+            <p>We're writing to inform you that the following mentorship request has been rejected:</p>
+            
+            <div class="appointment-details">
+              <h3>📅 Rejected Request Details</h3>
+              <p><strong>Skill Focus:</strong> ${skill}</p>
+              <p><strong>Date:</strong> ${formattedDate}</p>
+              <p><strong>Time:</strong> ${formattedTime}</p>
+              <p><strong>Mentor:</strong> ${mentorName}</p>
+              <p><strong>Mentee:</strong> ${menteeName}</p>
+              <p><strong>Session ID:</strong> #${appointmentId}</p>
+              ${
+                rejectionReason
+                  ? `<p><strong>Reason:</strong> ${rejectionReason}</p>`
+                  : ""
+              }
+            </div>
+
+            <p>This request has been removed from the calendar and is no longer active.</p>
+
+           
 
             <div class="footer">
               <p>Best regards,<br>The WeMeerkats Team</p>

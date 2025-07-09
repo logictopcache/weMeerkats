@@ -310,22 +310,24 @@ const AppointmentCalendar = () => {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              {appointment.status.toLowerCase() !==
-                                "cancelled" &&
-                                appointment.status.toLowerCase() !==
-                                  "completed" && (
-                                  <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() =>
-                                      handleCancelAppointment(appointment.id)
-                                    }
-                                    className="flex items-center gap-2 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
-                                  >
-                                    <FiX size={16} />
-                                    <span>Cancel</span>
-                                  </motion.button>
-                                )}
+                              {![
+                                "cancelled",
+                                "completed",
+                                "accepted",
+                                "rejected",
+                              ].includes(appointment.status.toLowerCase()) && (
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() =>
+                                    handleCancelAppointment(appointment.id)
+                                  }
+                                  className="flex items-center gap-2 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
+                                >
+                                  <FiX size={16} />
+                                  <span>Cancel</span>
+                                </motion.button>
+                              )}
                             </td>
                           </motion.tr>
                         )

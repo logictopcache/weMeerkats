@@ -128,6 +128,22 @@ class NotificationService {
       "Learner"
     );
   }
+
+  // When an appointment is cancelled or rejected
+  static async notifyAppointmentCancelled(
+    userId,
+    otherPartyName,
+    skill,
+    date,
+    userModel
+  ) {
+    return this.createNotification(
+      userId,
+      `Your appointment with ${otherPartyName} for ${skill} on ${date} has been cancelled or rejected.`,
+      "APPOINTMENT_CANCELLED",
+      userModel
+    );
+  }
 }
 
 module.exports = { NotificationService, NotificationTypes };

@@ -70,6 +70,7 @@ class GoogleCalendarService {
           dateTime: endTime.toISOString(),
           timeZone: "UTC",
         },
+        location: "Virtual Meeting", // Added to prevent Directions button
         attendees: [
           {
             email: mentorEmail,

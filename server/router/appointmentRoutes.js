@@ -130,6 +130,39 @@ router.post("/:appointmentId/accept", authMiddleware, async (req, res) => {
   }
 });
 
+// Reject an appointment (mentors only)
+router.post("/:appointmentId/reject", authMiddleware, async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { reason } = req.body;
+
+    // Only mentors can reject appointments
+    if (req.userType !== "Mentor") {
+      return res.status(403).json({
+        error: "Only mentors can reject appointments",
+      });
+    }
+
+    const result = await appointmentService.rejectAppointment(
+      appointmentId,
+      req.user._id,
+      reason
+    );
+
+    res.json({
+      success: true,
+      message: "Appointment rejected successfully",
+      appointment: result.appointment,
+    });
+  } catch (error) {
+    console.error("Error rejecting appointment:", error);
+    res.status(500).json({
+      error: "Failed to reject appointment",
+      details: error.message,
+    });
+  }
+});
+
 /**
  * Cancel an appointment
  */
@@ -286,6 +319,36 @@ router.get("/upcoming/week", authMiddleware, async (req, res) => {
     console.error("Error getting upcoming appointments:", error);
     res.status(500).json({
       error: "Failed to get upcoming appointments",
+      details: error.message,
+    });
+  }
+});
+
+// Debug endpoint to check appointment status
+router.get("/:appointmentId/debug", authMiddleware, async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const appointment = await Appointment.findById(appointmentId);
+
+    if (!appointment) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    res.json({
+      success: true,
+      appointment: {
+        id: appointment._id,
+        status: appointment.status,
+        mentorId: appointment.mentorId,
+        learnerId: appointment.learnerId,
+        appointmentDateTime: appointment.appointmentDateTime,
+        statusHistory: appointment.statusHistory,
+      },
+    });
+  } catch (error) {
+    console.error("Error getting appointment debug info:", error);
+    res.status(500).json({
+      error: "Failed to get appointment debug info",
       details: error.message,
     });
   }

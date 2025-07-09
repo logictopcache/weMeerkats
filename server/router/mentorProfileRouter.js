@@ -561,46 +561,24 @@ router.patch(
   authMiddleware,
   async (req, res) => {
     try {
-      const appointment = await Appointment.findOneAndUpdate(
-        {
-          _id: req.params.appointmentId,
-          mentorId: req.mentor._id,
-          status: "pending",
-        },
-        {
-          $set: { status: "accepted" },
-          $push: {
-            statusHistory: {
-              status: "accepted",
-              updatedBy: req.mentor._id,
-              note: "Appointment accepted by mentor",
-            },
-          },
-        },
-        { new: true }
-      ).populate("learnerId");
-
-      if (!appointment) {
-        return res
-          .status(404)
-          .json({ error: "Appointment not found or already processed" });
-      }
-
-      // Send notification to learner about the accepted appointment
-      await NotificationService.notifyAppointmentAccepted(
-        appointment.learnerId._id,
-        `${req.mentor.firstName} ${req.mentor.lastName}`,
-        appointment.appointmentDateTime,
-        appointment.skill
+      // Use the appointment service to properly handle acceptance with calendar events and emails
+      const appointmentService = require("../services/appointmentService");
+      const result = await appointmentService.acceptAppointment(
+        req.params.appointmentId,
+        req.mentor._id
       );
 
       res.status(200).json({
         status: "success",
-        data: appointment,
+        data: result.appointment,
+        message: result.message,
       });
     } catch (error) {
       console.error("Error accepting meeting request:", error);
-      res.status(500).json({ error: "Failed to accept meeting request" });
+      res.status(500).json({
+        error: "Failed to accept meeting request",
+        details: error.message,
+      });
     }
   }
 );
@@ -613,38 +591,25 @@ router.patch(
     try {
       const { reason } = req.body;
 
-      const appointment = await Appointment.findOneAndUpdate(
-        {
-          _id: req.params.appointmentId,
-          mentorId: req.mentor._id,
-          status: "pending",
-        },
-        {
-          $set: { status: "rejected" },
-          $push: {
-            statusHistory: {
-              status: "rejected",
-              updatedBy: req.mentor._id,
-              note: reason || "Appointment rejected by mentor",
-            },
-          },
-        },
-        { new: true }
+      // Use the appointment service to properly handle rejection with calendar events
+      const appointmentService = require("../services/appointmentService");
+      const result = await appointmentService.rejectAppointment(
+        req.params.appointmentId,
+        req.mentor._id,
+        reason
       );
-
-      if (!appointment) {
-        return res
-          .status(404)
-          .json({ error: "Appointment not found or already processed" });
-      }
 
       res.status(200).json({
         status: "success",
-        data: appointment,
+        data: result.appointment,
+        message: result.message,
       });
     } catch (error) {
       console.error("Error rejecting meeting request:", error);
-      res.status(500).json({ error: "Failed to reject meeting request" });
+      res.status(500).json({
+        error: "Failed to reject meeting request",
+        details: error.message,
+      });
     }
   }
 );

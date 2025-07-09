@@ -144,6 +144,49 @@ const AppointmentCalender = () => {
     }
   };
 
+  const handleReject = async (appointmentId) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to reject this appointment request?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const response = await fetch(
+        `http://localhost:5274/api/appointments/${appointmentId}/reject`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reason: "Appointment rejected by mentor",
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to reject appointment");
+      }
+
+      fetchAppointments();
+      toast.success("Appointment rejected successfully");
+    } catch (error) {
+      console.error("Error rejecting appointment:", error);
+      toast.error(error.message || "Failed to reject appointment");
+    }
+  };
+
   const handleCancel = async (appointmentId) => {
     if (!window.confirm("Are you sure you want to cancel this appointment?")) {
       return;
@@ -272,8 +315,8 @@ const AppointmentCalender = () => {
   };
 
   const ActionDropdown = ({ appointment }) => {
-    // Don't render the dropdown for completed appointments
-    if (appointment.status.toLowerCase() === "completed") {
+    // Hide actions for accepted or rejected appointments
+    if (["accepted", "rejected"].includes(appointment.status.toLowerCase())) {
       return null;
     }
 
@@ -303,60 +346,6 @@ const AppointmentCalender = () => {
 
         {openDropdown === appointment.id && (
           <div className="absolute right-0 mt-2 w-48 rounded-xl bg-[#0c1631] border border-white/10 shadow-lg overflow-visible z-[100]">
-            {appointment.status.toLowerCase() === "accepted" && (
-              <div className="py-1">
-                <button
-                  onClick={() => {
-                    if (hasAppointmentTimePassed) {
-                      setCompleteModal({
-                        show: true,
-                        appointmentId: appointment.id,
-                      });
-                      setOpenDropdown(null);
-                    }
-                  }}
-                  className={`flex items-center gap-2 w-full px-4 py-2 text-sm relative ${
-                    hasAppointmentTimePassed
-                      ? "text-white/80 hover:bg-white/5"
-                      : "text-white/40 cursor-not-allowed hover:bg-white/[0.02]"
-                  }`}
-                  disabled={!hasAppointmentTimePassed}
-                >
-                  <FiCheck
-                    size={16}
-                    className={
-                      hasAppointmentTimePassed
-                        ? "text-green-500"
-                        : "text-green-500/40"
-                    }
-                  />
-                  <span>Complete</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setRescheduleModal({
-                      show: true,
-                      appointmentId: appointment.id,
-                    });
-                    setOpenDropdown(null);
-                  }}
-                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-white/80 hover:bg-white/5"
-                >
-                  <FiRefreshCw size={16} className="text-blue-500" />
-                  <span>Reschedule</span>
-                </button>
-                <button
-                  onClick={() => {
-                    handleCancel(appointment.id);
-                    setOpenDropdown(null);
-                  }}
-                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-white/80 hover:bg-white/5"
-                >
-                  <FiX size={16} className="text-red-500" />
-                  <span>Cancel</span>
-                </button>
-              </div>
-            )}
             {appointment.status.toLowerCase() === "pending" && (
               <div className="py-1">
                 <button
@@ -371,7 +360,7 @@ const AppointmentCalender = () => {
                 </button>
                 <button
                   onClick={() => {
-                    handleCancel(appointment.id);
+                    handleReject(appointment.id);
                     setOpenDropdown(null);
                   }}
                   className="flex items-center gap-2 w-full px-4 py-2 text-sm text-white/80 hover:bg-white/5"
@@ -489,9 +478,6 @@ const AppointmentCalender = () => {
                       <th className="px-6 py-4 text-left text-xs font-medium text-white/60 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-white/60 uppercase tracking-wider">
-                        Actions
-                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
@@ -546,9 +532,6 @@ const AppointmentCalender = () => {
                                 {appointment.status}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <ActionDropdown appointment={appointment} />
-                            </td>
                           </motion.tr>
                         )
                       )}
@@ -556,7 +539,7 @@ const AppointmentCalender = () => {
                     {filterAppointments(appointments).length === 0 && (
                       <tr>
                         <td
-                          colSpan="5"
+                          colSpan="4"
                           className="px-6 py-8 text-center text-white/60"
                         >
                           No appointments found

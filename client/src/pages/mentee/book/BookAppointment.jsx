@@ -197,24 +197,18 @@ const BookAppointment = () => {
         }
       }
 
-      // Success message with appointment details
-      const successMessage = data.calendarIntegrated
-        ? "Appointment booked successfully! 📅 Added to mentor's calendar with meeting link."
-        : "Appointment request sent successfully! The mentor will be notified.";
-
+      // Success message for appointment request
       toast.success(
         <div>
-          <p>{successMessage}</p>
+          <p>Appointment request sent successfully! 📧</p>
           <p className="text-sm mt-1">
             {`With ${mentorData.name} for ${selectedSkill}`}
             <br />
             {`${appointmentDateTime.toLocaleDateString()} at ${selectedTime}`}
           </p>
-          {data.calendar?.meetingLink && (
-            <p className="text-xs mt-2 text-green-600">
-              Meeting link will be available after mentor accepts
-            </p>
-          )}
+          <p className="text-xs mt-2 text-blue-600">
+            The mentor will review your request and get back to you shortly
+          </p>
         </div>,
         { duration: 6000 }
       );

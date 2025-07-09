@@ -66,7 +66,81 @@ class AppointmentService {
 
       await appointment.save();
 
-      // Try to create Google Calendar event
+      // Calendar events will be created when the appointment is accepted, not when booked
+      // This prevents calendar events from being created for pending appointments
+      appointment.googleCalendar = {
+        calendarSynced: false,
+        syncError: null,
+      };
+      await appointment.save();
+
+      // Send booking request notifications (not confirmation emails)
+      try {
+        await this.sendAppointmentNotifications(appointment, "booking_request");
+      } catch (emailError) {
+        console.error("Email notification failed:", emailError);
+        // Continue even if email fails
+      }
+
+      // Send in-app notifications
+      await this.sendInAppNotifications(appointment, "booking_request");
+
+      return {
+        success: true,
+        appointment,
+        message: "Appointment request sent successfully",
+      };
+    } catch (error) {
+      console.error("Error booking appointment:", error);
+      throw new Error(`Failed to book appointment: ${error.message}`);
+    }
+  }
+
+  // Accept an appointment and sync with calendar
+  async acceptAppointment(appointmentId, acceptedBy) {
+    try {
+      console.log(
+        `Attempting to accept appointment ${appointmentId} by user ${acceptedBy}`
+      );
+
+      const appointment = await Appointment.findById(appointmentId);
+      if (!appointment) {
+        throw new Error("Appointment not found");
+      }
+
+      console.log(
+        `Appointment ${appointmentId} current status: ${appointment.status}`
+      );
+
+      // Check current status and provide more informative error
+      if (appointment.status !== "pending") {
+        // If already accepted, return success (idempotent operation)
+        if (appointment.status === "accepted") {
+          console.log(`Appointment ${appointmentId} already accepted`);
+          return {
+            success: true,
+            appointment,
+            message: "Appointment already accepted",
+          };
+        }
+
+        throw new Error(
+          `Appointment is not in pending status. Current status: ${appointment.status}`
+        );
+      }
+
+      // Update appointment status
+      appointment.status = "accepted";
+      appointment.statusHistory.push({
+        status: "accepted",
+        updatedBy: acceptedBy,
+        updatedAt: new Date(),
+        note: "Appointment accepted",
+      });
+
+      await appointment.save();
+
+      // Create Google Calendar event when appointment is accepted
       let calendarResult = null;
       try {
         calendarResult = await this.createCalendarEvent(appointment);
@@ -84,6 +158,9 @@ class AppointmentService {
         } else if (calendarResult && !calendarResult.success) {
           // Handle expected calendar connection issues gracefully
           if (calendarResult.reason === "mentor_calendar_not_connected") {
+            console.info(
+              "📅 Calendar creation skipped: Mentor hasn't connected Google Calendar"
+            );
           } else {
             console.error("Calendar creation failed:", calendarResult.message);
           }
@@ -104,69 +181,6 @@ class AppointmentService {
         await appointment.save();
       }
 
-      // Send email notifications
-      try {
-        await this.sendAppointmentNotifications(appointment, "booking");
-      } catch (emailError) {
-        console.error("Email notification failed:", emailError);
-        // Continue even if email fails
-      }
-
-      // Send in-app notifications
-      await this.sendInAppNotifications(appointment, "booking");
-
-      return {
-        success: true,
-        appointment,
-        calendar: calendarResult,
-        message: "Appointment booked successfully",
-      };
-    } catch (error) {
-      console.error("Error booking appointment:", error);
-      throw new Error(`Failed to book appointment: ${error.message}`);
-    }
-  }
-
-  // Accept an appointment and sync with calendar
-  async acceptAppointment(appointmentId, acceptedBy) {
-    try {
-      const appointment = await Appointment.findById(appointmentId);
-      if (!appointment) {
-        throw new Error("Appointment not found");
-      }
-
-      if (appointment.status !== "pending") {
-        throw new Error("Appointment is not in pending status");
-      }
-
-      // Update appointment status
-      appointment.status = "accepted";
-      appointment.statusHistory.push({
-        status: "accepted",
-        updatedBy: acceptedBy,
-        updatedAt: new Date(),
-        note: "Appointment accepted",
-      });
-
-      await appointment.save();
-
-      // Update calendar event if exists
-      if (appointment.googleCalendar?.eventId) {
-        try {
-          await this.updateCalendarEvent(appointment);
-        } catch (calendarError) {
-          if (
-            calendarError.message === "Mentor hasn't connected Google Calendar"
-          ) {
-            console.info(
-              "📅 Calendar update skipped: Mentor hasn't connected Google Calendar"
-            );
-          } else {
-            console.error("Calendar update failed:", calendarError);
-          }
-        }
-      }
-
       // Send notifications
       await this.sendAppointmentNotifications(appointment, "acceptance");
       await this.sendInAppNotifications(appointment, "acceptance");
@@ -179,6 +193,64 @@ class AppointmentService {
     } catch (error) {
       console.error("Error accepting appointment:", error);
       throw new Error(`Failed to accept appointment: ${error.message}`);
+    }
+  }
+
+  // Reject an appointment and remove from calendar
+  async rejectAppointment(appointmentId, rejectedBy, rejectionReason = null) {
+    try {
+      const appointment = await Appointment.findById(appointmentId);
+      if (!appointment) {
+        throw new Error("Appointment not found");
+      }
+
+      if (appointment.status !== "pending") {
+        throw new Error("Appointment is not in pending status");
+      }
+
+      // Update appointment status
+      appointment.status = "rejected";
+      appointment.statusHistory.push({
+        status: "rejected",
+        updatedBy: rejectedBy,
+        updatedAt: new Date(),
+        note: rejectionReason || "Appointment rejected by mentor",
+      });
+
+      await appointment.save();
+
+      // Remove calendar event if exists (since it was never confirmed)
+      if (appointment.googleCalendar?.eventId) {
+        try {
+          await this.cancelCalendarEvent(appointment);
+        } catch (calendarError) {
+          if (
+            calendarError.message === "Mentor hasn't connected Google Calendar"
+          ) {
+            console.info(
+              "📅 Calendar removal skipped: Mentor hasn't connected Google Calendar"
+            );
+          } else {
+            console.error("Calendar removal failed:", calendarError);
+          }
+        }
+      }
+
+      // Send rejection notifications
+      await this.sendAppointmentNotifications(appointment, "rejection", {
+        rejectionReason,
+        rejectedBy,
+      });
+      await this.sendInAppNotifications(appointment, "rejection");
+
+      return {
+        success: true,
+        appointment,
+        message: "Appointment rejected successfully",
+      };
+    } catch (error) {
+      console.error("Error rejecting appointment:", error);
+      throw new Error(`Failed to reject appointment: ${error.message}`);
     }
   }
 
@@ -404,9 +476,14 @@ class AppointmentService {
       };
 
       switch (type) {
-        case "booking":
+        case "booking_request":
+          await emailService.sendAppointmentBookingRequest(emailData);
+          break;
         case "acceptance":
           await emailService.sendAppointmentConfirmation(emailData);
+          break;
+        case "rejection":
+          await emailService.sendAppointmentRejection(emailData);
           break;
         case "cancellation":
           await emailService.sendAppointmentCancellation(emailData);
@@ -437,8 +514,8 @@ class AppointmentService {
       ).toLocaleDateString();
 
       switch (type) {
-        case "booking":
-          // Notify mentor of new booking
+        case "booking_request":
+          // Notify mentor of new booking request
           await NotificationService.notifyAppointmentBooked(
             appointment.mentorId,
             `${learner.firstName} ${learner.lastName}`,
@@ -451,6 +528,24 @@ class AppointmentService {
         case "acceptance":
           // Notify learner of acceptance
           await NotificationService.notifyAppointmentAccepted(
+            appointment.learnerId,
+            `${mentor.firstName} ${mentor.lastName}`,
+            appointment.skill,
+            appointmentDate,
+            "Learner"
+          );
+          break;
+
+        case "rejection":
+          // Notify both parties of rejection
+          await NotificationService.notifyAppointmentCancelled(
+            appointment.mentorId,
+            `${learner.firstName} ${learner.lastName}`,
+            appointment.skill,
+            appointmentDate,
+            "Mentor"
+          );
+          await NotificationService.notifyAppointmentCancelled(
             appointment.learnerId,
             `${mentor.firstName} ${mentor.lastName}`,
             appointment.skill,
