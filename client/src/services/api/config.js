@@ -30,6 +30,13 @@ export const API_ENDPOINTS = {
   MENTEES_PROGRESS: `${API_BASE_URL}/api/mentor/mentees-progress`,
   CREATE_SKILL_ASSIGNMENT: `${API_BASE_URL}/api/mentor/skill/create-assignment`,
   CREATED_ASSIGNMENTS: `${API_BASE_URL}/api/mentor/created-assignments`,
+
+  // PDF Parser Endpoints
+  PDF_UPLOAD_RESUME: `${API_BASE_URL}/api/pdf/upload-resume`,
+  PDF_GET_RESUMES: `${API_BASE_URL}/api/pdf/resumes`,
+  PDF_ANALYZE_RESUME: `${API_BASE_URL}/api/pdf/analyze-resume`,
+  PDF_DELETE_RESUME: `${API_BASE_URL}/api/pdf/resume`,
+  PDF_PROFILE_SUGGESTIONS: `${API_BASE_URL}/api/pdf/profile-suggestions`,
 };
 
 export const API_HEADERS = {

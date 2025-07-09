@@ -36,7 +36,8 @@ app.use(
 );
 
 const openai = new OpenAI({
-  apiKey: "sk-proj-RVT00VsAhNEGqopz7OkgT3BlbkFJJfn8SYETAoKyccYPxzUu",
+  apiKey:
+    "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",
 });
 
 // Function to create context-aware system prompts
@@ -102,7 +103,7 @@ app.post("/api/chat", async (req, res) => {
 
     // Get AI response
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: contextualMessages,
     });
 
@@ -236,6 +237,9 @@ const { console } = require("inspector");
 const googleCalendarAuthRouter = require("./router/googleCalendarAuth");
 const appointmentRouter = require("./router/appointmentRoutes");
 
+// PDF Parser integration
+const pdfParserRouter = require("./router/pdfParserRouter");
+
 app.use(learnerRouter);
 app.use(mentorRouter);
 app.use(mentorProfileRouter);
@@ -251,6 +255,9 @@ app.use("/api/admin", adminDashboardRouter);
 app.use("/api/calendar", googleCalendarAuthRouter);
 // Appointment routes
 app.use("/api/appointments", appointmentRouter);
+
+// PDF Parser routes
+app.use("/api/pdf", pdfParserRouter);
 
 const io = new Server(server, {
   cors: {

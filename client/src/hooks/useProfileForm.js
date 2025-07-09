@@ -30,8 +30,8 @@ export const useProfileForm = (role) => {
               description: "",
             },
           ],
-          certification: "",
-          expertise: "",
+          certification: [],
+          expertise: [],
           skills: [],
         }
       : {

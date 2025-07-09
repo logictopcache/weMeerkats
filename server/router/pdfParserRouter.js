@@ -5,13 +5,18 @@ const path = require("path");
 const fs = require("fs");
 const pdf = require("pdf-parse");
 const jwt = require("jsonwebtoken"); // Add JWT for token verification
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const OpenAI = require("openai");
+const Mentor = require("../models/mentorSchema");
+const Learner = require("../models/learnerSchema");
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Initialize OpenAI
+const openai = new OpenAI({
+  apiKey:
+    "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",
+});
 
 // Middleware to authenticate and extract user info from bearer token
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
 
@@ -23,8 +28,44 @@ const authenticateToken = (req, res, next) => {
 
   try {
     // Verify the JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // This should contain user info including profileType
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+
+    // Try to find the user as a mentor first
+    let user = await Mentor.findOne({
+      _id: decoded._id,
+      "tokens.token": token,
+    });
+
+    if (user) {
+      req.user = {
+        id: user._id,
+        name: `${user.firstName} ${user.lastName}`,
+        profileType: "MENTOR",
+        email: user.email,
+      };
+      req.mentor = user;
+    } else {
+      // Try to find the user as a learner
+      user = await Learner.findOne({
+        _id: decoded._id,
+        "tokens.token": token,
+      });
+
+      if (user) {
+        req.user = {
+          id: user._id,
+          name: `${user.firstName} ${user.lastName}`,
+          profileType: "LEARNER",
+          email: user.email,
+        };
+        req.learner = user;
+      } else {
+        return res.status(401).json({
+          error: "User not found",
+        });
+      }
+    }
+
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
@@ -90,11 +131,9 @@ const parsePDF = async (filePath) => {
   }
 };
 
-// Helper function to analyze resume with Gemini AI based on known profile type
-const analyzeResumeWithGemini = async (resumeText, profileType) => {
+// Helper function to analyze resume with OpenAI based on known profile type
+const analyzeResumeWithOpenAI = async (resumeText, profileType) => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
     let prompt;
 
     if (profileType === "MENTOR") {
@@ -137,9 +176,20 @@ const analyzeResumeWithGemini = async (resumeText, profileType) => {
       `;
     }
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a resume parser that extracts structured data from resumes and returns only valid JSON.",
+        },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.1,
+    });
+
+    const text = response.choices[0].message.content;
 
     // Clean up the response to ensure it's valid JSON
     const cleanedText = text.replace(/```json\n?|\n?```/g, "").trim();
@@ -147,12 +197,12 @@ const analyzeResumeWithGemini = async (resumeText, profileType) => {
     try {
       return JSON.parse(cleanedText);
     } catch (parseError) {
-      console.error("Error parsing Gemini response as JSON:", parseError);
-      console.log("Raw Gemini response:", text);
+      console.error("Error parsing OpenAI response as JSON:", parseError);
+      console.log("Raw OpenAI response:", text);
       throw new Error("Failed to parse AI response as JSON");
     }
   } catch (error) {
-    console.error("Error analyzing resume with Gemini:", error);
+    console.error("Error analyzing resume with OpenAI:", error);
     throw new Error("Failed to analyze resume with AI");
   }
 };
@@ -234,11 +284,9 @@ router.post(
       console.log(resumeText);
       console.log("=".repeat(50));
 
-      // Analyze resume with Gemini AI using known profile type
-      console.log(
-        `\n=== Analyzing Resume with Gemini AI for ${profileType} ===`
-      );
-      const extractedData = await analyzeResumeWithGemini(
+      // Analyze resume with OpenAI using known profile type
+      console.log(`\n=== Analyzing Resume with OpenAI for ${profileType} ===`);
+      const extractedData = await analyzeResumeWithOpenAI(
         resumeText,
         profileType
       );
@@ -324,8 +372,8 @@ router.get("/analyze-resume/:filename", authenticateToken, async (req, res) => {
     // Parse the PDF
     const resumeText = await parsePDF(filePath);
 
-    // Analyze with Gemini AI using known profile type
-    const extractedData = await analyzeResumeWithGemini(
+    // Analyze with OpenAI using known profile type
+    const extractedData = await analyzeResumeWithOpenAI(
       resumeText,
       profileType
     );

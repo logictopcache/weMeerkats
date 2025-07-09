@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { fetchSkills } from "../../services/api/skillsService";
+import ResumeUpload from "./ResumeUpload";
 // import { mentorProfileValidation, validateForm} from '../../utils/profileValidation';
 
 const MentorSection = ({ title, subtitle }) => {
@@ -23,6 +24,7 @@ const MentorSection = ({ title, subtitle }) => {
   const [profilePicture, setProfilePicture] = useState(null); // State for file
 
   const [errors, setErrors] = useState({});
+  const [isResumeProcessing, setIsResumeProcessing] = useState(false);
 
   const [editingSlot, setEditingSlot] = useState(null);
   const durations = [30, 45, 60, 90, 120];
@@ -129,6 +131,74 @@ const MentorSection = ({ title, subtitle }) => {
     } else {
       setProfilePicture(null);
     }
+  };
+
+  // Handle extracted data from resume
+  const handleResumeDataExtracted = (extractedData) => {
+    if (!extractedData) return;
+
+    // Update form data with extracted information
+    const updatedFormData = { ...formData };
+
+    // Update basic information
+    if (extractedData.bio) {
+      updatedFormData.bio = extractedData.bio;
+    }
+
+    if (extractedData.designation) {
+      updatedFormData.designation = extractedData.designation;
+    }
+
+    // Update education
+    if (extractedData.education && Array.isArray(extractedData.education)) {
+      updatedFormData.education = extractedData.education.map((edu) => ({
+        degree: edu.degree || "",
+        universityName: edu.universityName || "",
+        location: edu.location || "",
+        duration: edu.duration || "",
+        description: edu.description || "",
+      }));
+    }
+
+    // Update work experiences
+    if (extractedData.experience && Array.isArray(extractedData.experience)) {
+      updatedFormData.workExperiences = extractedData.experience.map((exp) => ({
+        title: exp.title || "",
+        companyName: exp.companyName || "",
+        location: exp.location || "",
+        duration: exp.duration || "",
+        description: exp.description || "",
+      }));
+    }
+
+    // Update skills
+    if (extractedData.skills && Array.isArray(extractedData.skills)) {
+      updatedFormData.skills = extractedData.skills;
+      setSelectedSkills(extractedData.skills);
+    }
+
+    // Update certifications
+    if (
+      extractedData.certifications &&
+      Array.isArray(extractedData.certifications)
+    ) {
+      updatedFormData.certification = extractedData.certifications;
+      setSelectedCertifications(extractedData.certifications);
+    }
+
+    // Update expertise (map from experience and skills)
+    if (extractedData.experience && Array.isArray(extractedData.experience)) {
+      const expertiseFromExperience = extractedData.experience
+        .map((exp) => exp.title)
+        .filter((title) => title && expertiseList.includes(title));
+
+      if (expertiseFromExperience.length > 0) {
+        updatedFormData.expertise = expertiseFromExperience.slice(0, 3); // Limit to 3
+        setSelectedExpertise(expertiseFromExperience.slice(0, 3));
+      }
+    }
+
+    setFormData(updatedFormData);
   };
 
   const handleFormSubmit = async (e) => {
@@ -459,6 +529,12 @@ const MentorSection = ({ title, subtitle }) => {
           },
         }}
       >
+        {/* Resume Upload Section */}
+        <ResumeUpload
+          onDataExtracted={handleResumeDataExtracted}
+          onLoadingChange={setIsResumeProcessing}
+        />
+
         {/* Basic Information */}
         <motion.div variants={formSectionVariants} className={sectionStyle}>
           <h2 className="text-2xl font-semibold text-primary-color mb-6 flex items-center">
@@ -997,17 +1073,19 @@ const MentorSection = ({ title, subtitle }) => {
         <motion.div variants={formSectionVariants} className="flex justify-end">
           <motion.button
             type="submit"
-            disabled={loading}
+            disabled={loading || isResumeProcessing}
             className="relative group px-8 py-4 bg-primary-color rounded-xl text-white font-medium overflow-hidden transition-all hover:shadow-lg disabled:opacity-50"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-primary-color to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
             <span className="relative">
-              {loading ? (
+              {loading || isResumeProcessing ? (
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Saving Profile...
+                  {isResumeProcessing
+                    ? "Processing Resume..."
+                    : "Saving Profile..."}
                 </div>
               ) : (
                 "Save Profile"
