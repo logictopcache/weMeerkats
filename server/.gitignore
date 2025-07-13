@@ -9,6 +9,7 @@ server/.env
 server/.env.test
 server/.env.production
 server/.env.local
+server/config.env
 
 # Logs in server
 server/logs/

@@ -35,9 +35,14 @@ app.use(
   })
 );
 
+// Initialize OpenAI
+if (!process.env.OPENAI_API_KEY) {
+  console.error("OPENAI_API_KEY environment variable is not set");
+  process.exit(1);
+}
+
 const openai = new OpenAI({
-  apiKey:
-    "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",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 // Function to create context-aware system prompts

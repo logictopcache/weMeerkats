@@ -8,11 +8,16 @@ const jwt = require("jsonwebtoken"); // Add JWT for token verification
 const OpenAI = require("openai");
 const Mentor = require("../models/mentorSchema");
 const Learner = require("../models/learnerSchema");
+require("dotenv").config({ path: "../config.env" });
 
 // Initialize OpenAI
+if (!process.env.OPENAI_API_KEY) {
+  console.error("OPENAI_API_KEY environment variable is not set");
+  process.exit(1);
+}
+
 const openai = new OpenAI({
-  apiKey:
-    "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",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 // Middleware to authenticate and extract user info from bearer token
