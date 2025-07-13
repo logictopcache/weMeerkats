@@ -1,0 +1,64 @@
+# Node.js dependencies in server folder
+server/node_modules/
+server/npm-debug.log*
+server/yarn-debug.log*
+server/yarn-error.log*
+
+# Environment files in server
+server/.env
+server/.env.test
+server/.env.production
+server/.env.local
+
+# Logs in server
+server/logs/
+server/*.log
+
+# Runtime data in server
+server/pids/
+server/*.pid
+server/*.seed
+server/*.pid.lock
+
+# Coverage directory in server
+server/coverage/
+server/*.lcov
+
+# Build outputs in server
+server/build/
+server/dist/
+
+# Cache directories in server
+server/.npm
+server/.cache
+server/.parcel-cache
+
+# Temporary folders in server
+server/tmp/
+server/temp/
+
+# Optional files in server
+server/.eslintcache
+server/.nyc_output
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig 
