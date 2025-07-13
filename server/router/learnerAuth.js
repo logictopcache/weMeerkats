@@ -8,6 +8,10 @@ const { v4: uuidv4 } = require("uuid");
 const Learner = require("../models/learnerSchema");
 const LearnerOTPVerification = require("../models/learnerOTPVerificationSchema");
 
+const LearnerProfile = require("../models/learnerProfile");
+const MentorProfile = require("../models/mentorProfile");
+const skillMatchingService = require("../services/skillMatchingService");
+
 const transporter = nodemailer.createTransport({
   service: "Gmail",
   host: "smtp.gmail.com",
@@ -17,6 +21,120 @@ const transporter = nodemailer.createTransport({
     user: process.env.AUTHENTICATION_EMAIL,
     pass: process.env.AUTHENTICATION_PASSWORD,
   },
+});
+
+// Add matched mentors endpoint before the parameterized route
+learnerRouter.get("/learner/matched-mentors", async (req, res) => {
+  try {
+    // Get learner ID from query parameter or token
+    const learnerId = req.query.learnerId;
+
+    if (!learnerId) {
+      return res.status(400).json({
+        error: "Learner ID is required",
+        message: "Please provide learner ID as query parameter",
+      });
+    }
+
+    // Get learner profile to extract skills
+    const learnerProfile = await LearnerProfile.findOne({
+      learnerId: learnerId,
+    });
+
+    if (
+      !learnerProfile ||
+      !learnerProfile.skills ||
+      learnerProfile.skills.length === 0
+    ) {
+      return res.status(404).json({
+        error: "Learner profile not found or no skills defined",
+        message:
+          "Please complete your profile with skills to get matched mentors",
+      });
+    }
+
+    // Get all verified mentors with their profiles
+    const mentorProfiles = await MentorProfile.find({
+      isVerified: true,
+    }).populate("mentorId", "firstName lastName email verified");
+
+    if (!mentorProfiles || mentorProfiles.length === 0) {
+      return res.status(404).json({
+        error: "No verified mentors found",
+        message: "No mentors are currently available",
+      });
+    }
+
+    // Prepare mentor data for Python script
+    const mentorsData = mentorProfiles.map((profile) => {
+      const mentor = profile.mentorId;
+      return {
+        _id: profile.mentorId._id,
+        mentorId: profile.mentorId._id,
+        fullName: profile.fullName,
+        email: profile.email || mentor.email,
+        phone: profile.phone,
+        bio: profile.bio,
+        profilePictureUrl: profile.profilePictureUrl,
+        education: profile.education || [],
+        workExperiences: profile.workExperiences || [],
+        certification: profile.certification,
+        expertise: profile.expertise,
+        skills: profile.skills || [],
+        availability: profile.availability || {},
+        isVerified: profile.isVerified,
+        verified: mentor.verified,
+        image: profile.profilePictureUrl
+          ? `${req.protocol}://${req.get("host")}/uploads/${
+              profile.profilePictureUrl
+            }`
+          : null,
+      };
+    });
+
+    // Get query parameters for matching options
+    const minScore = parseFloat(req.query.minScore) || 0.1;
+    const maxResults = parseInt(req.query.maxResults) || 10;
+
+    // Use Python script to rank mentors
+    const matchingResult = await skillMatchingService.rankMentorsBySkills(
+      learnerProfile.skills,
+      mentorsData,
+      {
+        minScore: minScore,
+        maxResults: maxResults,
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Mentors matched successfully",
+      data: {
+        learner_skills: learnerProfile.skills,
+        matched_mentors: matchingResult.ranked_mentors,
+        total_mentors_processed: matchingResult.total_mentors_processed,
+        mentors_returned: matchingResult.mentors_returned,
+        matching_criteria: matchingResult.matching_criteria,
+      },
+    });
+  } catch (error) {
+    console.error("Error in mentor matching:", error);
+
+    // Check if it's a Python dependency error
+    if (error.message.includes("Python") || error.message.includes("python3")) {
+      return res.status(503).json({
+        error: "Skill matching service unavailable",
+        message:
+          "The matching service is currently unavailable. Please try again later.",
+        details: "Python dependencies may not be installed",
+      });
+    }
+
+    res.status(500).json({
+      error: "Failed to match mentors",
+      message: "An error occurred while matching mentors with your skills",
+    });
+  }
 });
 
 learnerRouter.get("/learner/:id", async (req, res) => {

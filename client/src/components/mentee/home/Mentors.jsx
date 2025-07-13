@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { MessageCircle, User } from "lucide-react";
-import { fetchMentors } from "../../../services/api/mentorApi";
+import { fetchMatchedMentors } from "../../../services/api/matchedMentorsService";
 import {
   createMenteeConversation,
   fetchMenteeConversations,
 } from "../../../services/api/menteeApi";
+import { fetchMentors } from "../../../services/api/mentorApi";
 import { toast } from "react-hot-toast";
 
 const MentorCard = ({ mentor }) => {
@@ -79,12 +80,12 @@ const MentorCard = ({ mentor }) => {
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A1128]/90 to-transparent" />
-          {!mentor.verified && (
+          {!mentor.isVerified && (
             <div className="absolute top-4 right-4 px-3 py-1 bg-yellow-500/90 text-black text-xs font-medium rounded-full">
               Pending Verification
             </div>
           )}
-          {mentor.verified && (
+          {mentor.isVerified && (
             <div className="absolute top-4 right-4 px-3 py-1 bg-green-500/90 text-white text-xs font-medium rounded-full">
               Verified
             </div>
@@ -110,6 +111,38 @@ const MentorCard = ({ mentor }) => {
             >
               {mentor.bio}
             </p>
+          )}
+
+          {/* Matching Score */}
+          {mentor.matching_score !== undefined && (
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex-1 bg-white/5 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${mentor.matching_score * 100}%` }}
+                />
+              </div>
+              <span className="text-xs text-white/70 font-medium">
+                {Math.round(mentor.matching_score * 100)}% Match
+              </span>
+            </div>
+          )}
+
+          {/* Matched Skills */}
+          {mentor.matched_skills && mentor.matched_skills.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs text-white/60 mb-2">Matched Skills:</p>
+              <div className="flex flex-wrap gap-1">
+                {mentor.matched_skills.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Skills Section */}
@@ -147,9 +180,9 @@ const MentorCard = ({ mentor }) => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleSendMessage}
-              disabled={!mentor.verified}
+              disabled={!mentor.isVerified}
               className={`flex items-center justify-center gap-2 ${
-                mentor.verified
+                mentor.isVerified
                   ? "bg-gradient-to-r from-primary-color/20 to-blue-500/20 hover:from-primary-color/30 hover:to-blue-500/30 backdrop-blur-xl border border-white/10 text-white"
                   : "bg-white/[0.02] text-white/30 cursor-not-allowed border border-white/10"
               } py-3 px-4 rounded-xl transition-all duration-300`}
@@ -171,18 +204,50 @@ const Mentors = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const getMentors = async () => {
+    const getMatchedMentors = async () => {
       try {
-        const data = await fetchMentors();
-        setMentors(data);
+        const response = await fetchMatchedMentors({
+          minScore: 0.2,
+          maxResults: 3,
+        });
+
+        if (response.success && response.data.matched_mentors) {
+          setMentors(response.data.matched_mentors);
+        } else {
+          setMentors([]);
+        }
       } catch (error) {
-        console.error("Error fetching mentors:", error);
-        setMentors([]);
+        console.error("Error fetching matched mentors:", error);
+
+        // Show user-friendly error message
+        if (
+          error.message.includes("profile not found") ||
+          error.message.includes("no skills defined")
+        ) {
+          toast.error(
+            "Please complete your profile with skills to see matched mentors"
+          );
+        } else if (error.message.includes("unavailable")) {
+          toast.error(
+            "Matching service is temporarily unavailable. Showing all mentors instead."
+          );
+          // Fallback to regular mentors API
+          try {
+            const data = await fetchMentors();
+            setMentors(data);
+          } catch (fallbackError) {
+            console.error("Fallback mentor fetch failed:", fallbackError);
+            setMentors([]);
+          }
+        } else {
+          toast.error("Failed to load matched mentors");
+          setMentors([]);
+        }
       } finally {
         setIsLoading(false);
       }
     };
-    getMentors();
+    getMatchedMentors();
   }, []);
 
   if (isLoading) {
@@ -244,10 +309,10 @@ const Mentors = () => {
         className="text-center mb-12"
       >
         <h1 className="text-4xl font-bold text-white mb-4">
-          Find Your Perfect Mentor
+          Your Matched Mentors
         </h1>
         <p className="text-white/60 max-w-2xl mx-auto">
-          Connect with experienced mentors who can guide you through your
+          Discover mentors perfectly matched to your skills and learning goals
           learning journey. Choose from our carefully selected professionals and
           start growing today.
         </p>
@@ -346,7 +411,7 @@ MentorCard.propTypes = {
     firstName: PropTypes.string.isRequired,
     lastName: PropTypes.string.isRequired,
     email: PropTypes.string.isRequired,
-    verified: PropTypes.bool.isRequired,
+    isVerified: PropTypes.bool.isRequired,
     image: PropTypes.string,
   }).isRequired,
 };

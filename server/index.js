@@ -36,8 +36,7 @@ app.use(
 );
 
 const openai = new OpenAI({
-  apiKey:
-    "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",
+  apiKey: process.env.OPEN_AI,
 });
 
 // Function to create context-aware system prompts
@@ -185,7 +184,7 @@ app.post("/api/create-prompt", async (req, res) => {
     const prompt = `Generate only one prompt not question for creating quiz question topic is ${title} and start prompt just after [[ and end the prompt with ]]`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [{ role: "system", content: prompt }],
     });
 
@@ -205,7 +204,7 @@ app.post("/api/generate-question", async (req, res) => {
     const prompt = `I want only one question. ${generatedPrompt} and start question just after [[ and end the question with ]]. And also give me the 4 options and answer. Answer should be one of the option without any special symbol. 1st option starts with $$ and end with $$. 2nd option starts with @@ and end with @@. 3rd option starts with ## and end with ##. 4th option starts with && and end with &&. Correct Answer starts with ~~~ and end with ~~~`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: "You are a quiz question generator." },
         { role: "user", content: prompt },
