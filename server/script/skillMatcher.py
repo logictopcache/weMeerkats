@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Skill Matching Algorithm for Mentor-Mentee Matching
+Enhanced Skill Matching Algorithm with NLTK for Mentor-Mentee Matching
 This script calculates compatibility scores between learners and mentors based on skill sets.
 """
 
@@ -11,9 +11,35 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
+import nltk
+from nltk.corpus import wordnet
+from nltk.stem import WordNetLemmatizer, PorterStemmer
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+
+# Download required NLTK data
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
+
+try:
+    nltk.data.find('corpora/wordnet')
+except LookupError:
+    nltk.download('wordnet')
 
 class SkillMatcher:
     def __init__(self):
+        # Initialize NLTK components
+        self.lemmatizer = WordNetLemmatizer()
+        self.stemmer = PorterStemmer()
+        self.stop_words = set(stopwords.words('english'))
+        
         # Define skill categories and their related skills for better matching
         self.skill_categories = {
             "Web Development": ["javascript", "react", "angular", "vue", "html", "css", "node.js", "express", "django", "flask", "php", "laravel", "wordpress"],
@@ -28,6 +54,61 @@ class SkillMatcher:
             "UI/UX": ["figma", "adobe xd", "sketch", "user research", "wireframing", "prototyping"]
         }
         
+        # Skill synonyms and variations mapping
+        self.skill_synonyms = {
+            # JavaScript variations
+            "js": "javascript", "javascript": "javascript", "ecmascript": "javascript",
+            "react.js": "react", "reactjs": "react", "react": "react",
+            "angular.js": "angular", "angularjs": "angular", "angular": "angular",
+            "vue.js": "vue", "vuejs": "vue", "vue": "vue",
+            "node.js": "node.js", "nodejs": "node.js", "node": "node.js",
+            
+            # Python variations
+            "python": "python", "py": "python",
+            
+            # Database variations
+            "mysql": "mysql", "postgresql": "postgresql", "postgres": "postgresql",
+            "mongodb": "mongodb", "mongo": "mongodb",
+            
+            # AI/ML variations
+            "ml": "machine learning", "machine learning": "machine learning",
+            "ai": "artificial intelligence", "artificial intelligence": "artificial intelligence",
+            "deep learning": "deep learning", "dl": "deep learning",
+            "nlp": "natural language processing", "natural language processing": "natural language processing",
+            
+            # Cloud variations
+            "aws": "aws", "amazon web services": "aws",
+            "azure": "azure", "microsoft azure": "azure",
+            "gcp": "gcp", "google cloud platform": "gcp", "google cloud": "gcp",
+            
+            # Framework variations
+            "express.js": "express", "expressjs": "express", "express": "express",
+            "django": "django", "flask": "flask",
+            "laravel": "laravel", "php": "php",
+            "wordpress": "wordpress", "wp": "wordpress",
+            
+            # Mobile variations
+            "react native": "react native", "reactnative": "react native",
+            "flutter": "flutter", "dart": "flutter",
+            "swift": "swift", "kotlin": "kotlin",
+            "android": "android", "ios": "ios",
+            
+            # DevOps variations
+            "docker": "docker", "kubernetes": "kubernetes", "k8s": "kubernetes",
+            "jenkins": "jenkins", "git": "git", "github": "git",
+            "terraform": "terraform", "ci/cd": "ci/cd", "cicd": "ci/cd",
+            
+            # Testing variations
+            "selenium": "selenium", "jest": "jest", "pytest": "pytest",
+            "unit testing": "unit testing", "integration testing": "integration testing",
+            "qa": "quality assurance", "quality assurance": "quality assurance",
+            
+            # UI/UX variations
+            "figma": "figma", "adobe xd": "adobe xd", "sketch": "sketch",
+            "user research": "user research", "wireframing": "wireframing",
+            "prototyping": "prototyping", "ui": "user interface", "ux": "user experience"
+        }
+        
         # Initialize TF-IDF vectorizer for text-based skill matching
         self.vectorizer = TfidfVectorizer(
             lowercase=True,
@@ -37,29 +118,93 @@ class SkillMatcher:
         )
 
     def normalize_skills(self, skills: List[str]) -> List[str]:
-        """Normalize skill names for better matching"""
+        """Enhanced skill normalization using NLTK"""
         normalized = []
         for skill in skills:
             # Convert to lowercase and remove special characters
             skill_clean = re.sub(r'[^\w\s]', '', skill.lower().strip())
-            normalized.append(skill_clean)
+            
+            # Tokenize the skill
+            tokens = word_tokenize(skill_clean)
+            
+            # Remove stop words and lemmatize
+            processed_tokens = []
+            for token in tokens:
+                if token not in self.stop_words and len(token) > 1:
+                    # Lemmatize the token
+                    lemmatized = self.lemmatizer.lemmatize(token)
+                    processed_tokens.append(lemmatized)
+            
+            # Reconstruct the skill
+            normalized_skill = ' '.join(processed_tokens)
+            
+            # Check for synonyms
+            if normalized_skill in self.skill_synonyms:
+                normalized_skill = self.skill_synonyms[normalized_skill]
+            
+            normalized.append(normalized_skill)
+        
         return normalized
 
+    def get_skill_synonyms(self, skill: str) -> List[str]:
+        """Get synonyms for a skill using WordNet"""
+        synonyms = []
+        try:
+            # Get synsets for the skill
+            synsets = wordnet.synsets(skill, pos=wordnet.NOUN)
+            
+            for synset in synsets:
+                # Get lemma names (synonyms)
+                for lemma in synset.lemmas():
+                    synonym = lemma.name().lower()
+                    if synonym != skill.lower() and len(synonym) > 2:
+                        synonyms.append(synonym)
+                
+                # Get hypernyms (broader terms)
+                for hypernym in synset.hypernyms():
+                    for lemma in hypernym.lemmas():
+                        hypernym_name = lemma.name().lower()
+                        if hypernym_name != skill.lower() and len(hypernym_name) > 2:
+                            synonyms.append(hypernym_name)
+        except Exception as e:
+            print(f"Error getting synonyms for {skill}: {e}", file=sys.stderr)
+        
+        return list(set(synonyms))
+
     def calculate_skill_overlap(self, learner_skills: List[str], mentor_skills: List[str]) -> float:
-        """Calculate direct skill overlap score"""
+        """Enhanced skill overlap calculation with NLTK processing"""
         learner_normalized = set(self.normalize_skills(learner_skills))
         mentor_normalized = set(self.normalize_skills(mentor_skills))
         
         if not learner_normalized or not mentor_normalized:
             return 0.0
         
+        # Calculate direct overlap
         intersection = learner_normalized.intersection(mentor_normalized)
         union = learner_normalized.union(mentor_normalized)
         
-        return len(intersection) / len(union) if union else 0.0
+        direct_overlap = len(intersection) / len(union) if union else 0.0
+        
+        # Calculate synonym-based overlap
+        synonym_overlap = 0.0
+        for learner_skill in learner_normalized:
+            learner_synonyms = self.get_skill_synonyms(learner_skill)
+            for mentor_skill in mentor_normalized:
+                mentor_synonyms = self.get_skill_synonyms(mentor_skill)
+                
+                # Check if skills are synonyms
+                if (learner_skill in mentor_synonyms or 
+                    mentor_skill in learner_synonyms or
+                    any(syn in mentor_synonyms for syn in learner_synonyms)):
+                    synonym_overlap += 0.5  # Partial match for synonyms
+        
+        # Combine direct and synonym overlap
+        total_overlap = min(1.0, direct_overlap + synonym_overlap)
+        
+        return total_overlap
 
     def calculate_category_similarity(self, learner_skills: List[str], mentor_skills: List[str]) -> float:
-        """Calculate similarity based on skill categories"""
+        """Enhanced category similarity with NLTK processing"""
         learner_normalized = [skill.lower() for skill in learner_skills]
         mentor_normalized = [skill.lower() for skill in mentor_skills]
         
@@ -87,11 +232,35 @@ class SkillMatcher:
         return len(intersection) / len(union) if union else 0.0
 
     def calculate_text_similarity(self, learner_skills: List[str], mentor_skills: List[str]) -> float:
-        """Calculate similarity using TF-IDF and cosine similarity"""
+        """Enhanced text similarity using NLTK and TF-IDF"""
         try:
-            # Combine skills into text for vectorization
-            learner_text = " ".join(learner_skills)
-            mentor_text = " ".join(mentor_skills)
+            # Enhanced text preprocessing
+            learner_processed = []
+            mentor_processed = []
+            
+            # Process learner skills
+            for skill in learner_skills:
+                tokens = word_tokenize(skill.lower())
+                processed_tokens = []
+                for token in tokens:
+                    if token not in self.stop_words and len(token) > 1:
+                        lemmatized = self.lemmatizer.lemmatize(token)
+                        processed_tokens.append(lemmatized)
+                learner_processed.extend(processed_tokens)
+            
+            # Process mentor skills
+            for skill in mentor_skills:
+                tokens = word_tokenize(skill.lower())
+                processed_tokens = []
+                for token in tokens:
+                    if token not in self.stop_words and len(token) > 1:
+                        lemmatized = self.lemmatizer.lemmatize(token)
+                        processed_tokens.append(lemmatized)
+                mentor_processed.extend(processed_tokens)
+            
+            # Combine into text for vectorization
+            learner_text = " ".join(learner_processed)
+            mentor_text = " ".join(mentor_processed)
             
             # Create documents for vectorization
             documents = [learner_text, mentor_text]
@@ -155,7 +324,7 @@ class SkillMatcher:
         text_score = self.calculate_text_similarity(learner_skills, mentor_skills)
         expertise_bonus = self.calculate_expertise_bonus(mentor_data)
         
-        # Find matched skills
+        # Find matched skills with enhanced processing
         learner_normalized = set(self.normalize_skills(learner_skills))
         mentor_normalized = set(self.normalize_skills(mentor_skills))
         matched_skills = list(learner_normalized.intersection(mentor_normalized))
