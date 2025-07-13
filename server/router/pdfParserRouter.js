@@ -11,8 +11,7 @@ const Learner = require("../models/learnerSchema");
 
 // Initialize OpenAI
 const openai = new OpenAI({
-  apiKey:
-    "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",
+  apiKey: process.env.OPEN_AI,
 });
 
 // Middleware to authenticate and extract user info from bearer token
