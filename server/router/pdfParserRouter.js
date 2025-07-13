@@ -5,14 +5,11 @@ const path = require("path");
 const fs = require("fs");
 const pdf = require("pdf-parse");
 const jwt = require("jsonwebtoken"); // Add JWT for token verification
-const OpenAI = require("openai");
+const geminiService = require("../services/geminiService");
 const Mentor = require("../models/mentorSchema");
 const Learner = require("../models/learnerSchema");
 
-// Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPEN_AI,
-});
+// Gemini service is initialized in the service file
 
 // Middleware to authenticate and extract user info from bearer token
 const authenticateToken = async (req, res, next) => {
@@ -243,79 +240,13 @@ const parsePDF = async (filePath) => {
   }
 };
 
-// Helper function to analyze resume with OpenAI based on known profile type
-const analyzeResumeWithOpenAI = async (resumeText, profileType) => {
+// Helper function to analyze resume with Gemini based on known profile type
+const analyzeResumeWithGemini = async (resumeText, profileType) => {
   try {
-    let prompt;
-
-    if (profileType === "MENTOR") {
-      prompt = `
-      Extract information from the following resume text for a MENTOR profile in JSON format.
-
-      MENTOR Profile Keys to extract:
-      - fullName: string
-      - education: array of objects with {degree, universityName, location, duration, description}
-      - skills: array of strings
-      - experience: array of objects with {title, companyName, location, duration, description}
-      - certifications: array of strings
-      - bio: string (generate a professional bio based on experience)
-      - designation: string (current or most recent job title)
-
-      Resume Text:
-      ${resumeText}
-
-      Return only valid JSON with the extracted data, no additional text or formatting.
-      `;
-    } else {
-      prompt = `
-      Extract information from the following resume text for a LEARNER profile in JSON format.
-
-      LEARNER Profile Keys to extract:
-      - fullName: string
-      - email: string
-      - phone: string
-      - education: array of objects with {degree, universityName, location, duration}
-      - workExperiences: array of objects with {title, companyName, location, duration}
-      - certification: array of strings
-      - expertise: array of strings
-      - skills: array of strings
-      - projects: array of objects with {name, description, technologies}
-
-      Resume Text:
-      ${resumeText}
-
-      Return only valid JSON with the extracted data, no additional text or formatting.
-      `;
-    }
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a resume parser that extracts structured data from resumes and returns only valid JSON.",
-        },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.1,
-    });
-
-    const text = response.choices[0].message.content;
-
-    // Clean up the response to ensure it's valid JSON
-    const cleanedText = text.replace(/```json\n?|\n?```/g, "").trim();
-
-    try {
-      return JSON.parse(cleanedText);
-    } catch (parseError) {
-      console.error("Error parsing OpenAI response as JSON:", parseError);
-      console.log("Raw OpenAI response:", text);
-      throw new Error("Failed to parse AI response as JSON");
-    }
+    return await geminiService.analyzeResume(resumeText, profileType);
   } catch (error) {
-    console.error("Error analyzing resume with OpenAI:", error);
-    throw new Error("Failed to analyze resume with AI");
+    console.error("Error analyzing resume with Gemini:", error);
+    throw error;
   }
 };
 
@@ -396,9 +327,9 @@ router.post(
       console.log(resumeText);
       console.log("=".repeat(50));
 
-      // Analyze resume with OpenAI using known profile type
-      console.log(`\n=== Analyzing Resume with OpenAI for ${profileType} ===`);
-      const extractedData = await analyzeResumeWithOpenAI(
+      // Analyze resume with Gemini using known profile type
+      console.log(`\n=== Analyzing Resume with Gemini for ${profileType} ===`);
+      const extractedData = await analyzeResumeWithGemini(
         resumeText,
         profileType
       );
@@ -503,8 +434,8 @@ router.get("/analyze-resume/:filename", authenticateToken, async (req, res) => {
     // Parse the PDF
     const resumeText = await parsePDF(filePath);
 
-    // Analyze with OpenAI using known profile type
-    const extractedData = await analyzeResumeWithOpenAI(
+    // Analyze with Gemini using known profile type
+    const extractedData = await analyzeResumeWithGemini(
       resumeText,
       profileType
     );

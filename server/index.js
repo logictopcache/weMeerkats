@@ -5,7 +5,7 @@ const bodyParser = require("body-parser");
 const http = require("http");
 const { Server } = require("socket.io");
 const conversation = require("./models/conversationSchema");
-const OpenAI = require("openai");
+const geminiService = require("./services/geminiService");
 const { NotificationService } = require("./util/notificationService");
 const NotificationSocket = require("./util/notificationSocket");
 const AIConversation = require("./models/aiConversationSchema");
@@ -35,9 +35,7 @@ app.use(
   })
 );
 
-const openai = new OpenAI({
-  apiKey: process.env.OPEN_AI,
-});
+// Gemini service is initialized in the service file
 
 // Function to create context-aware system prompts
 const createSystemPrompt = (topic, skill) => {
@@ -100,12 +98,8 @@ app.post("/api/chat", async (req, res) => {
       ...messages,
     ];
 
-    // Get AI response
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: contextualMessages,
-    });
-
+    // Get AI response using Gemini
+    const response = await geminiService.chatCompletions(contextualMessages);
     const aiResponse = response.choices[0].message.content;
 
     // If learner is authenticated and wants to save the conversation
@@ -183,10 +177,10 @@ app.post("/api/create-prompt", async (req, res) => {
   try {
     const prompt = `Generate only one prompt not question for creating quiz question topic is ${title} and start prompt just after [[ and end the prompt with ]]`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "system", content: prompt }],
-    });
+    const response = await geminiService.chatCompletions([
+      { role: "system", content: "You are a quiz prompt generator." },
+      { role: "user", content: prompt },
+    ]);
 
     const generatedPrompt = response.choices[0].message.content.trim();
     res.status(200).json({ status: true, generatedPrompt });
@@ -203,13 +197,10 @@ app.post("/api/generate-question", async (req, res) => {
   try {
     const prompt = `I want only one question. ${generatedPrompt} and start question just after [[ and end the question with ]]. And also give me the 4 options and answer. Answer should be one of the option without any special symbol. 1st option starts with $$ and end with $$. 2nd option starts with @@ and end with @@. 3rd option starts with ## and end with ##. 4th option starts with && and end with &&. Correct Answer starts with ~~~ and end with ~~~`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "You are a quiz question generator." },
-        { role: "user", content: prompt },
-      ],
-    });
+    const response = await geminiService.chatCompletions([
+      { role: "system", content: "You are a quiz question generator." },
+      { role: "user", content: prompt },
+    ]);
 
     const question = response.choices[0].message.content.trim();
     res.status(200).json({ status: true, question });

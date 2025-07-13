@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import ResumeUpload from "./ResumeUpload";
+// import ResumeUpload from "./ResumeUpload";
 
 const MenteeSection = ({ title, subtitle }) => {
   const navigate = useNavigate();
@@ -269,11 +269,10 @@ const MenteeSection = ({ title, subtitle }) => {
         }}
         encType="multipart/form-data"
       >
-        {/* Resume Upload Section */}
-        <ResumeUpload
+        {/* <ResumeUpload
           onDataExtracted={handleResumeDataExtracted}
           onLoadingChange={setIsResumeProcessing}
-        />
+        /> */}
 
         {/* Basic Information Section */}
         <motion.div
