@@ -558,12 +558,12 @@ const AdminDashboard = () => {
               <select
                 value={filters.status}
                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary-color"
+                className="px-4 py-2 bg-gray-800 border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary-color"
               >
-                <option value="">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
+                <option value="" className="bg-gray-800 text-white">All Status</option>
+                <option value="pending" className="bg-gray-800 text-white">Pending</option>
+                <option value="approved" className="bg-gray-800 text-white">Approved</option>
+                <option value="rejected" className="bg-gray-800 text-white">Rejected</option>
               </select>
 
               {/* Export Button */}
