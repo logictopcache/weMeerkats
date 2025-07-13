@@ -96,18 +96,32 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter configuration for PDF files
+// File filter configuration for PDF files with enhanced validation
 const fileFilter = (req, file, cb) => {
   const allowedMimeTypes = ["application/pdf"];
   const fileTypes = /pdf/;
   const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedMimeTypes.includes(file.mimetype);
 
-  if (extname && mimetype) {
-    cb(null, true);
-  } else {
+  // Check basic file type
+  if (!extname || !mimetype) {
     cb(new Error("Error: Only PDF files are allowed for resume upload!"));
+    return;
   }
+
+  // Check file size (10MB limit)
+  if (file.size > 10 * 1024 * 1024) {
+    cb(new Error("Error: File size must be less than 10MB"));
+    return;
+  }
+
+  // Check for empty files
+  if (file.size === 0) {
+    cb(new Error("Error: File appears to be empty"));
+    return;
+  }
+
+  cb(null, true);
 };
 
 // Multer configuration for resume uploads
@@ -122,12 +136,111 @@ const uploadResume = multer({
 // Helper function to parse PDF and extract text
 const parsePDF = async (filePath) => {
   try {
+    // Check if file exists and is readable
+    if (!fs.existsSync(filePath)) {
+      throw new Error("PDF file not found");
+    }
+    
+    const stats = fs.statSync(filePath);
+    if (stats.size === 0) {
+      throw new Error("PDF file is empty");
+    }
+    
+    if (stats.size > 10 * 1024 * 1024) { // 10MB limit
+      throw new Error("PDF file is too large (max 10MB)");
+    }
+    
     const dataBuffer = fs.readFileSync(filePath);
-    const data = await pdf(dataBuffer);
-    return data.text;
+    
+    // Check if the file starts with PDF header
+    const pdfHeader = dataBuffer.slice(0, 4).toString();
+    if (pdfHeader !== '%PDF') {
+      throw new Error("Invalid PDF format - file does not appear to be a valid PDF");
+    }
+    
+    // Parse PDF with error handling for different error types
+    let data;
+    try {
+      // First attempt with default options
+      data = await pdf(dataBuffer, {
+        max: 0, // No limit on pages
+        version: 'v1.10.100'
+      });
+    } catch (firstError) {
+      console.log("First PDF parsing attempt failed, trying alternative approach...");
+      
+      // Second attempt with more lenient options
+      try {
+        data = await pdf(dataBuffer, {
+          max: 0,
+          version: 'v1.10.100',
+          // More lenient parsing options
+          normalizeWhitespace: true,
+          disableCombineTextItems: false
+        });
+      } catch (secondError) {
+        console.log("Second PDF parsing attempt failed, trying minimal options...");
+        
+        // Third attempt with minimal options
+        try {
+          data = await pdf(dataBuffer);
+        } catch (thirdError) {
+          // If all attempts fail, throw the original error with more context
+          throw new Error(`PDF parsing failed after multiple attempts. Original error: ${firstError.message}`);
+        }
+      }
+    }
+    
+    if (!data || !data.text) {
+      throw new Error("PDF parsing succeeded but no text was extracted");
+    }
+    
+    const extractedText = data.text.trim();
+    if (extractedText.length === 0) {
+      throw new Error("PDF appears to be empty or contains no readable text");
+    }
+    
+    // Check if the extracted text looks like binary data or is corrupted
+    const binaryDataPattern = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/;
+    if (binaryDataPattern.test(extractedText)) {
+      console.log("Warning: PDF text extraction may contain binary data, attempting to clean...");
+      // Clean the text by removing non-printable characters
+      const cleanedText = extractedText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ' ').trim();
+      if (cleanedText.length === 0) {
+        throw new Error("PDF contains only binary data or corrupted text. Please ensure the PDF is text-based and not image-only.");
+      }
+      return cleanedText;
+    }
+    
+    // Check if the text is mostly symbols or gibberish
+    const readableTextPattern = /[a-zA-Z\s]/;
+    const readableChars = extractedText.match(/[a-zA-Z\s]/g);
+    if (!readableChars || readableChars.length / extractedText.length < 0.3) {
+      throw new Error("PDF text appears to be corrupted or contains mostly unreadable characters. Please try with a different PDF file.");
+    }
+    
+    return extractedText;
   } catch (error) {
     console.error("Error parsing PDF:", error);
-    throw new Error("Failed to parse PDF file");
+    
+    // Provide more specific error messages based on error type
+    if (error.message.includes("Illegal character")) {
+      throw new Error("PDF file appears to be corrupted or contains invalid characters. Please try with a different PDF file.");
+    } else if (error.message.includes("FormatError")) {
+      throw new Error("PDF file format is not supported or corrupted. Please ensure you're uploading a valid PDF file.");
+    } else if (error.message.includes("Invalid PDF format")) {
+      throw new Error("The uploaded file is not a valid PDF. Please upload a proper PDF file.");
+    } else if (error.message.includes("file is too large")) {
+      throw new Error("PDF file is too large. Please upload a file smaller than 10MB.");
+    } else if (error.message.includes("PDF file not found")) {
+      throw new Error("PDF file was not found. Please try uploading again.");
+    } else if (error.message.includes("PDF file is empty")) {
+      throw new Error("PDF file is empty. Please upload a valid PDF with content.");
+    } else if (error.message.includes("no readable text")) {
+      throw new Error("PDF file contains no readable text. Please ensure the PDF is not password protected or image-only.");
+    } else {
+      throw new Error(`Failed to parse PDF file: ${error.message}`);
+    }
   }
 };
 
@@ -339,9 +452,28 @@ router.post(
         }
       }
 
-      res.status(500).json({
-        error: "Error processing resume",
+      // Provide more specific error responses based on error type
+      let statusCode = 500;
+      let errorMessage = "Error processing resume";
+      
+      if (error.message.includes("corrupted") || error.message.includes("invalid characters")) {
+        statusCode = 400;
+        errorMessage = "Invalid PDF file";
+      } else if (error.message.includes("too large")) {
+        statusCode = 413;
+        errorMessage = "File too large";
+      } else if (error.message.includes("empty") || error.message.includes("no readable text")) {
+        statusCode = 400;
+        errorMessage = "Invalid PDF content";
+      } else if (error.message.includes("not found")) {
+        statusCode = 404;
+        errorMessage = "File not found";
+      }
+      
+      res.status(statusCode).json({
+        error: errorMessage,
         details: error.message,
+        suggestion: statusCode === 400 ? "Please try uploading a different PDF file or ensure the file is not corrupted." : null
       });
     }
   }
