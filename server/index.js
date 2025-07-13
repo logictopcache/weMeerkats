@@ -28,7 +28,7 @@ app.use("/uploads", express.static("uploads"));
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:3000"],
+    origin: ["http://localhost:5173", "http://localhost:3000",],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
@@ -248,7 +248,7 @@ app.use("/api/notifications", notificationRouter);
 app.use("/api/ai", aiConversationRouter);
 app.use(quizResultRouter);
 app.use("/api", adminRouter);
-app.use("/api/admin", adminDashboardRouter);
+app.use("/api", adminDashboardRouter);
 
 // Google Calendar routes
 app.use("/api/calendar", googleCalendarAuthRouter);
