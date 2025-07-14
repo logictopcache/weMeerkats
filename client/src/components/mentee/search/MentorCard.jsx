@@ -87,17 +87,17 @@ const MentorCard = ({ mentor }) => {
           <img
             src={mentor.image}
             alt={mentor.name}
-            className="w-full h-50 object-cover"
+            className="w-full h-48 object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A1128]/90 to-transparent" />
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 space-y-3">
           <div>
-            <h3 className="font-bold text-xl text-white mb-1 group-hover:text-primary-color transition-colors">
+            <h3 className="font-bold text-lg text-white mb-1 group-hover:text-primary-color transition-colors">
               {mentor.name}
             </h3>
-            <p className="text-primary-color/90 font-medium">
+            <p className="text-primary-color/90 font-medium text-sm">
               {mentor.specialty}
             </p>
           </div>
@@ -106,47 +106,52 @@ const MentorCard = ({ mentor }) => {
             {[...Array(5)].map((_, index) => (
               <Star
                 key={index}
-                className={`w-4 h-4 ${
+                className={`w-3 h-3 ${
                   index < mentor.rating
                     ? "fill-primary-color text-primary-color"
                     : "text-white/20"
                 }`}
               />
             ))}
-            <span className="text-white/60 text-sm ml-2">
+            <span className="text-white/60 text-xs ml-2">
               {mentor.rating}.0
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {mentor.skills.map((skill, index) => (
+          <div className="flex flex-wrap gap-1">
+            {mentor.skills.slice(0, 3).map((skill, index) => (
               <span
                 key={index}
-                className="px-3 py-1 bg-white/5 backdrop-blur-sm border border-white/5 rounded-full text-xs text-white/80 hover:border-primary-color/50 transition-colors"
+                className="px-2 py-1 bg-white/5 backdrop-blur-sm border border-white/5 rounded-full text-xs text-white/80 hover:border-primary-color/50 transition-colors"
               >
                 {skill}
               </span>
             ))}
+            {mentor.skills.length > 3 && (
+              <span className="px-2 py-1 bg-white/5 text-white/60 text-xs rounded-full">
+                +{mentor.skills.length - 3}
+              </span>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleViewProfile}
-              className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 text-white py-3 px-4 rounded-xl transition-all duration-300"
+              className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 text-white py-2 px-3 rounded-lg transition-all duration-300 text-sm"
             >
-              <User className="w-4 h-4" />
-              <span>View Profile</span>
+              <User className="w-3 h-3" />
+              <span>Profile</span>
             </motion.button>
 
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleSendMessage}
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-primary-color/20 to-blue-500/20 hover:from-primary-color/30 hover:to-blue-500/30 backdrop-blur-xl border border-white/10 text-white py-3 px-4 rounded-xl transition-all duration-300"
+              className="flex items-center justify-center gap-1 bg-gradient-to-r from-primary-color/20 to-blue-500/20 hover:from-primary-color/30 hover:to-blue-500/30 backdrop-blur-xl border border-white/10 text-white py-2 px-3 rounded-lg transition-all duration-300 text-sm"
             >
-              <MessageCircle className="w-4 h-4" />
+              <MessageCircle className="w-3 h-3" />
               <span>Message</span>
             </motion.button>
           </div>

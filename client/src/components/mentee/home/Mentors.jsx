@@ -74,7 +74,7 @@ const MentorCard = ({ mentor }) => {
           <img
             src={mentor.image || "/media.png"}
             alt={`${mentor.firstName} ${mentor.lastName}`}
-            className="w-full h-50 object-cover"
+            className="w-full h-48 object-cover"
             onError={(e) => {
               e.target.src = "/media.png"; // Fallback if image fails to load
             }}
@@ -92,9 +92,9 @@ const MentorCard = ({ mentor }) => {
           )}
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 space-y-3">
           <div>
-            <h3 className="font-bold text-xl text-white mb-1 group-hover:text-primary-color transition-colors">
+            <h3 className="font-bold text-lg text-white mb-1 group-hover:text-primary-color transition-colors">
               {mentor.fullName || `${mentor.firstName} ${mentor.lastName}`}
             </h3>
           </div>
@@ -102,7 +102,7 @@ const MentorCard = ({ mentor }) => {
           {/* Bio Section */}
           {mentor.bio && (
             <p
-              className="text-white/70 text-sm leading-relaxed overflow-hidden"
+              className="text-white/70 text-xs leading-relaxed overflow-hidden"
               style={{
                 display: "-webkit-box",
                 WebkitLineClamp: 2,
@@ -115,10 +115,10 @@ const MentorCard = ({ mentor }) => {
 
           {/* Matching Score */}
           {mentor.matching_score !== undefined && (
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex-1 bg-white/5 rounded-full h-2">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="flex-1 bg-white/5 rounded-full h-1.5">
                 <div
-                  className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-green-400 to-blue-500 h-1.5 rounded-full transition-all duration-300"
                   style={{ width: `${mentor.matching_score * 100}%` }}
                 />
               </div>
@@ -130,10 +130,10 @@ const MentorCard = ({ mentor }) => {
 
           {/* Matched Skills */}
           {mentor.matched_skills && mentor.matched_skills.length > 0 && (
-            <div className="mb-3">
-              <p className="text-xs text-white/60 mb-2">Matched Skills:</p>
+            <div className="mb-2">
+              <p className="text-xs text-white/60 mb-1">Matched Skills:</p>
               <div className="flex flex-wrap gap-1">
-                {mentor.matched_skills.map((skill, index) => (
+                {mentor.matched_skills.slice(0, 2).map((skill, index) => (
                   <span
                     key={index}
                     className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30"
@@ -141,6 +141,11 @@ const MentorCard = ({ mentor }) => {
                     {skill}
                   </span>
                 ))}
+                {mentor.matched_skills.length > 2 && (
+                  <span className="px-2 py-1 bg-white/5 text-white/60 text-xs rounded-full">
+                    +{mentor.matched_skills.length - 2}
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -148,7 +153,7 @@ const MentorCard = ({ mentor }) => {
           {/* Skills Section */}
           {mentor.skills && mentor.skills.length > 0 && (
             <div className="flex flex-wrap gap-1">
-              {mentor.skills.slice(0, 3).map((skill, index) => (
+              {mentor.skills.slice(0, 2).map((skill, index) => (
                 <span
                   key={index}
                   className="px-2 py-1 bg-primary-color/10 text-primary-color text-xs rounded-full border border-primary-color/20"
@@ -156,22 +161,22 @@ const MentorCard = ({ mentor }) => {
                   {skill}
                 </span>
               ))}
-              {mentor.skills.length > 3 && (
+              {mentor.skills.length > 2 && (
                 <span className="px-2 py-1 bg-white/5 text-white/60 text-xs rounded-full">
-                  +{mentor.skills.length - 3} more
+                  +{mentor.skills.length - 2}
                 </span>
               )}
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <Link to={`/mentee/mprofile?id=${mentor._id}`} className="flex-1">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 text-white py-3 px-4 rounded-xl transition-all duration-300"
+                className="w-full flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 text-white py-2 px-3 rounded-lg transition-all duration-300 text-sm"
               >
-                <User className="w-4 h-4" />
+                <User className="w-3 h-3" />
                 <span>Profile</span>
               </motion.button>
             </Link>
@@ -181,13 +186,13 @@ const MentorCard = ({ mentor }) => {
               whileTap={{ scale: 0.98 }}
               onClick={handleSendMessage}
               disabled={!mentor.isVerified}
-              className={`flex items-center justify-center gap-2 ${
+              className={`flex items-center justify-center gap-1 ${
                 mentor.isVerified
                   ? "bg-gradient-to-r from-primary-color/20 to-blue-500/20 hover:from-primary-color/30 hover:to-blue-500/30 backdrop-blur-xl border border-white/10 text-white"
                   : "bg-white/[0.02] text-white/30 cursor-not-allowed border border-white/10"
-              } py-3 px-4 rounded-xl transition-all duration-300`}
+              } py-2 px-3 rounded-lg transition-all duration-300 text-sm`}
             >
-              <MessageCircle className="w-4 h-4" />
+              <MessageCircle className="w-3 h-3" />
               <span>Message</span>
             </motion.button>
           </div>

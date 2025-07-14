@@ -178,7 +178,9 @@ const Search_Mentors = () => {
                             name: mentor.name,
                             specialty: mentor.specialty || "Development",
                             skills: mentor.skills || [],
-                            image: "/3d_teacher.jpg",
+                            image: mentor.profilePictureUrl 
+                              ? `http://localhost:5274/uploads/${mentor.profilePictureUrl}`
+                              : "/3d_teacher.jpg",
                             rating: 4,
                             verified: mentor.isVerified,
                             bio: mentor.bio,

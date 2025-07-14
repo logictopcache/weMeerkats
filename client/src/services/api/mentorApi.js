@@ -92,7 +92,7 @@ export const fetchMentors = async () => {
       designation: mentor.designation, // From MentorProfile collection
       image: mentor.profilePictureUrl
         ? `${API_ENDPOINTS.BASE_URL}/uploads/${mentor.profilePictureUrl}`
-        : null, // Only set image if profile picture exists
+        : "/3d_teacher.jpg", // Default image if no profile picture
     }));
   } catch (error) {
     console.error("Error fetching mentors:", error);
@@ -128,7 +128,10 @@ export const searchMentors = async (searchQuery) => {
       specialty: mentor.expertise || "Development",
       skills: mentor.skills || [],
       mentor: mentor.mentorId,
-      image: "/media.png", // Default image since API doesn't provide one
+      profilePictureUrl: mentor.profilePictureUrl,
+      image: mentor.profilePictureUrl 
+        ? `${API_ENDPOINTS.BASE_URL}/uploads/${mentor.profilePictureUrl}`
+        : "/media.png", // Default image if no profile picture
       rating: 4, // Default rating since API doesn't provide one
       bio: mentor.bio,
       certification: mentor.certification,
