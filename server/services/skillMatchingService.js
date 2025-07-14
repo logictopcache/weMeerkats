@@ -17,7 +17,7 @@ class SkillMatchingService {
 
         // Spawn Python process with virtual environment
         const pythonProcess = spawn(
-          "python3",
+          "python",
           [this.pythonScriptPath, learnerSkillsJson, mentorsJson],
           {
             cwd: path.dirname(this.pythonScriptPath),
@@ -100,7 +100,7 @@ class SkillMatchingService {
 
   async checkDependencies() {
     return new Promise((resolve) => {
-      const pythonProcess = spawn("python3", [
+      const pythonProcess = spawn("python", [
         "-c",
         'import numpy, sklearn, scipy; print("OK")',
       ]);
